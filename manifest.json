@@ -12,5 +12,22 @@
     "dashboard"
   ],
   "thumbnail": null,
-  "releases": []
+  "releases": [
+    {
+      "version": "0.1.1",
+      "tag": "v0.1.1",
+      "source_revision": "9e3c865d23df1f5abcc6a2bf00fba9577f6785c2",
+      "released_at": "2026-06-08T15:21:01Z",
+      "channel": "Stable",
+      "release_notes": null,
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/krbrs/shoko-plugin-integrity-checker/releases/download/v0.1.1/ShokoIntegrityChecker-v0.1.1-any.zip",
+          "checksum": "f6cc774fd1d26f175c90ba69291ec7eae7f14315a83938c0555d794403f1fee7"
+        }
+      ]
+    }
+  ]
 }
