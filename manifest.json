@@ -14,6 +14,22 @@
   "thumbnail": null,
   "releases": [
     {
+      "version": "0.1.2",
+      "tag": "v0.1.2",
+      "source_revision": "4e2a6e1d173abd63450b1bbaca235e23a49e5b68",
+      "released_at": "2026-06-08T15:54:05Z",
+      "channel": "Stable",
+      "release_notes": "## What's new\n\n- **Scope your checks**: the dashboard now has a folder picker so you can run an integrity check\n  against just the managed folders you choose, instead of always walking your entire library.\n  Leave everything selected for the previous full-library behavior, or narrow it down for a\n  faster, more targeted run. The picker is backed by a new `GET /folders` endpoint, and the\n  dashboard's summary now shows which folders a run was scoped to (including after a restart).\n- Tightened up the dashboard copy — the header and results panel were both explaining the\n  detach/re-match mechanism; that's now said once, where it's relevant.",
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/krbrs/shoko-plugin-integrity-checker/releases/download/v0.1.2/ShokoIntegrityChecker-v0.1.2-any.zip",
+          "checksum": "5d1739050d7ff61bdbd2424ffad19bf47a107a87eeebb268f3bcd3333ec1d363"
+        }
+      ]
+    },
+    {
       "version": "0.1.1",
       "tag": "v0.1.1",
       "source_revision": "9e3c865d23df1f5abcc6a2bf00fba9577f6785c2",
