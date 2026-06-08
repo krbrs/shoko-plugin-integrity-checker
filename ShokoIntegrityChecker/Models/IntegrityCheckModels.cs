@@ -10,7 +10,13 @@ public sealed class ManagedFolderInfo
     /// <summary>
     /// The managed folder's ID, as passed back in <see cref="RunRequest.ManagedFolderIDs"/>.
     /// </summary>
-    public required int ID { get; init; }
+    /// <remarks>
+    /// Named <c>ManagedFolderID</c> rather than a bare <c>ID</c> — Newtonsoft serializes the
+    /// property name as-is, and the dashboard's naive camelCase normalizer (which only
+    /// lowercases the first character) would otherwise turn <c>"ID"</c> into <c>"iD"</c>
+    /// instead of the expected <c>"id"</c>, leaving <c>folder.id</c> undefined client-side.
+    /// </remarks>
+    public required int ManagedFolderID { get; init; }
 
     /// <summary>
     /// The managed folder's friendly name.

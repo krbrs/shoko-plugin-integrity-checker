@@ -86,10 +86,10 @@
     els.foldersList.hidden = false;
     els.foldersList.innerHTML = folders
       .map((folder) => {
-        const checked = selectedFolderIDs.has(folder.id) ? "checked" : "";
+        const checked = selectedFolderIDs.has(folder.managedFolderID) ? "checked" : "";
         return `
           <label class="folder-list__item">
-            <input type="checkbox" data-folder-id="${folder.id}" ${checked} />
+            <input type="checkbox" data-folder-id="${folder.managedFolderID}" ${checked} />
             <span>
               <span class="folder-list__name">${escapeHtml(folder.name)}</span>
               <span class="folder-list__path mono">${escapeHtml(folder.path)}</span>
@@ -117,7 +117,7 @@
       // Default to "everything selected" so the picker mirrors the previous,
       // unscoped behaviour until the user narrows it down themselves.
       selectedFolderIDs.clear();
-      for (const folder of folders) selectedFolderIDs.add(folder.id);
+      for (const folder of folders) selectedFolderIDs.add(folder.managedFolderID);
       renderFolders();
     } catch (err) {
       console.error(err);
@@ -297,7 +297,7 @@
       selectedFolderIDs.clear();
     } else {
       selectedFolderIDs.clear();
-      for (const folder of folders) selectedFolderIDs.add(folder.id);
+      for (const folder of folders) selectedFolderIDs.add(folder.managedFolderID);
     }
     renderFolders();
   });

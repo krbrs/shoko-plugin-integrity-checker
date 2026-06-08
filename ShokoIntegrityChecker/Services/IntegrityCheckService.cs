@@ -190,7 +190,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
     /// <inheritdoc />
     public IReadOnlyList<ManagedFolderInfo> GetManagedFolders()
         => [.. _videoService.GetAllManagedFolders()
-            .Select(folder => new ManagedFolderInfo { ID = folder.ID, Name = folder.Name, Path = folder.Path })
+            .Select(folder => new ManagedFolderInfo { ManagedFolderID = folder.ID, Name = folder.Name, Path = folder.Path })
             .OrderBy(folder => folder.Name, StringComparer.OrdinalIgnoreCase)];
 
     /// <inheritdoc />
