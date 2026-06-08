@@ -14,6 +14,22 @@
   "thumbnail": null,
   "releases": [
     {
+      "version": "0.1.6",
+      "tag": "v0.1.6",
+      "source_revision": "0ab61c7d392f31e5a8f98e5f99259e3d859e4c4f",
+      "released_at": "2026-06-08T18:09:00Z",
+      "channel": "Dev",
+      "release_notes": "## What changed\n\n- **Renamed the plugin's page from \"Integrity Checker\" to \"Dashboard\"** in Settings → Plugins, matching the naming convention used by other plugins (e.g. ShokoRelay) instead of redundantly repeating the plugin's own name.",
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/krbrs/shoko-plugin-integrity-checker/releases/download/v0.1.6/ShokoIntegrityChecker-v0.1.6-any.zip",
+          "checksum": "83e2ac4322719902cc9a2a4c7ea93b6b7c337f07ba676baa4d26ba375e53ee62"
+        }
+      ]
+    },
+    {
       "version": "0.1.5",
       "tag": "v0.1.5",
       "source_revision": "470ccc73052b27db6385cf8e70203782ac784cf1",
