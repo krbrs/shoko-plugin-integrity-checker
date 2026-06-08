@@ -34,12 +34,19 @@ ShokoIntegrityChecker/
 3. `IntegrityCheckService` snapshots every available file across all managed folders (`IVideoService`), then calls
    `IVideoHashingService.GetHashesForFile(file, useExistingHashes: false, ...)` for each one — the same force-rehash
    path the built-in "Rehash" file action uses. If the recomputed hash differs (or a new video record was spun up),
-   it's recorded as a mismatch; Shoko's hashing service has already detached the file and left it unrecognized.
+   it's recorded as a hash change; Shoko's hashing service has already detached the file from its old release info.
+   Whether the new video record ends up matched to a release (`IVideo.ReleaseInfo is not null`) determines how the
+   dashboard labels it: **Auto re-matched** (Shoko's release search picked it back up under the corrected hash, no
+   action needed) or **Needs re-matching** (genuinely unrecognized now, same as after a single-file rescan).
 4. The dashboard polls `/status` every 1.5s while a run is active and renders progress plus a results table.
 5. After each run, `IntegrityCheckService` writes its results to `results.json` under the plugin's per-plugin
    configuration directory (`{Shoko data dir}/configuration/{plugin GUID}/`, the same location the host purges on
    uninstall) and reloads it on startup — so results survive a server restart or plugin reload instead of resetting
    to "no run yet".
+
+> [!NOTE]
+> A changed hash usually means the file got corrupted. Less often, Shoko computed a wrong hash. Either way, compare
+> it to the original source — if it checks out, re-match it; if not, you'd just be re-matching a corrupted file.
 
 ## Building
 

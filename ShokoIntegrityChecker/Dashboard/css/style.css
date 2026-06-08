@@ -196,6 +196,17 @@ body {
   font-size: 0.85rem;
 }
 
+.notice {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid var(--accent);
+  color: var(--fg);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 .empty-state {
   color: var(--muted);
   font-size: 0.9rem;
