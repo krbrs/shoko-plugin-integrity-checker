@@ -298,6 +298,18 @@ body {
   padding: 12px 0 4px;
 }
 
+/*
+ * The `hidden` attribute is normally enough to hide an element via the
+ * user-agent stylesheet's `[hidden] { display: none }` rule, but author
+ * styles win over user-agent styles regardless of specificity — so once
+ * `.empty-state` declares its own `display`, the element stays visible
+ * even when JS sets `.hidden = true`. Restate `display: none` here so the
+ * loading/empty state actually disappears once folders have loaded.
+ */
+.empty-state[hidden] {
+  display: none;
+}
+
 .spinner {
   display: none;
   flex: none;
