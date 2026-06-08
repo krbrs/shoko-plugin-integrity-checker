@@ -33,7 +33,9 @@ ShokoIntegrityChecker/
    `GET .../status`, and `GET .../folders`, plus serves the static dashboard at `GET .../dashboard`.
 3. The dashboard's **Scope** picker (backed by `GET .../folders`) lets you check every managed folder — the
    default — or narrow a run down to just the ones you select; your choice is sent as `managedFolderIDs` in the
-   `POST .../run` body and only files under those folders are walked.
+   `POST .../run` body and only files under those folders are walked. Pure drop-source ("import") folders are
+   left out of the picker entirely — they're a transient staging area files pass through on their way to a real
+   home, so re-hashing them is pointless and could race with an in-progress import.
 4. `IntegrityCheckService` snapshots every available file across the selected managed folders (`IVideoService`),
    then calls `IVideoHashingService.GetHashesForFile(file, useExistingHashes: false, ...)` for each one — the same
    force-rehash path the built-in "Rehash" file action uses. If the recomputed hash differs (or a new video record

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Services;
 using ShokoIntegrityChecker.Models;
 
@@ -190,6 +191,13 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
     /// <inheritdoc />
     public IReadOnlyList<ManagedFolderInfo> GetManagedFolders()
         => [.. _videoService.GetAllManagedFolders()
+            // Pure drop-source ("import") folders are a transient staging area —
+            // files land there only briefly before being relocated into their
+            // real home, so re-hashing them is pointless and could race with an
+            // in-progress import. Folders that are *also* a destination (i.e.
+            // `Both`) are excluded from this filter since they double as a
+            // permanent home for files.
+            .Where(folder => folder.DropFolderType != DropFolderType.Source)
             .Select(folder => new ManagedFolderInfo { ManagedFolderID = folder.ID, Name = folder.Name, Path = folder.Path })
             .OrderBy(folder => folder.Name, StringComparer.OrdinalIgnoreCase)];
 

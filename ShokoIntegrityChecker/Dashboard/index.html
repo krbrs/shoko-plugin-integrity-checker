@@ -26,7 +26,10 @@
           Choose which managed folders to check. Leave everything selected to check your whole library, or narrow it
           down to a few folders for a faster, more targeted run.
         </p>
-        <div id="folders-loading" class="empty-state">Loading managed folders…</div>
+        <div id="folders-loading" class="empty-state empty-state--loading">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="folders-loading-text">Loading managed folders…</span>
+        </div>
         <div id="folders-list" class="folder-list" hidden></div>
       </div>
 

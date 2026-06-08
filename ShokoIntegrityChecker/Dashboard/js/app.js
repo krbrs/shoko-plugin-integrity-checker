@@ -12,6 +12,7 @@
     cancelBtn: document.getElementById("cancel-btn"),
     scopeToggleBtn: document.getElementById("scope-toggle-btn"),
     foldersLoading: document.getElementById("folders-loading"),
+    foldersLoadingText: document.getElementById("folders-loading-text"),
     foldersList: document.getElementById("folders-list"),
     statusPill: document.getElementById("status-pill"),
     progressWrap: document.getElementById("progress-wrap"),
@@ -77,7 +78,8 @@
   function renderFolders() {
     if (folders.length === 0) {
       els.foldersLoading.hidden = false;
-      els.foldersLoading.textContent = "No managed folders found.";
+      els.foldersLoading.classList.remove("empty-state--loading");
+      els.foldersLoadingText.textContent = "No managed folders found.";
       els.foldersList.hidden = true;
       return;
     }
@@ -122,7 +124,8 @@
     } catch (err) {
       console.error(err);
       els.foldersLoading.hidden = false;
-      els.foldersLoading.textContent = "Couldn't load managed folders — see the browser console for details.";
+      els.foldersLoading.classList.remove("empty-state--loading");
+      els.foldersLoadingText.textContent = "Couldn't load managed folders — see the browser console for details.";
       els.foldersList.hidden = true;
     }
   }
