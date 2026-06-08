@@ -14,6 +14,22 @@
   "thumbnail": null,
   "releases": [
     {
+      "version": "0.1.3",
+      "tag": "v0.1.3",
+      "source_revision": "b9be4159cada1578bba2a7ed43b1c51be9f1aa85",
+      "released_at": "2026-06-08T16:32:03Z",
+      "channel": "Stable",
+      "release_notes": "## What's fixed\n\n- **Folder picker wasn't working**: managed folders failed to load/select correctly because\n  the API returned the folder ID as `ID`, which the dashboard's camelCase normalizer turned\n  into `iD` instead of `id` — leaving every folder's ID undefined client-side. Renamed the\n  field to `ManagedFolderID` (matching the existing `FileID`/`PreviousVideoID` convention)\n  so it now camelizes correctly to `managedFolderID`, and the picker loads and selects as\n  expected.",
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/krbrs/shoko-plugin-integrity-checker/releases/download/v0.1.3/ShokoIntegrityChecker-v0.1.3-any.zip",
+          "checksum": "9c64be6bcbe432d3af49729fe314fe9524eeadfd8c790646adfabb004322ea58"
+        }
+      ]
+    },
+    {
       "version": "0.1.2",
       "tag": "v0.1.2",
       "source_revision": "4e2a6e1d173abd63450b1bbaca235e23a49e5b68",
