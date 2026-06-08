@@ -14,22 +14,6 @@
   "thumbnail": null,
   "releases": [
     {
-      "version": "0.1.5",
-      "tag": "v0.1.5",
-      "source_revision": "8e88d8fc25c2e9543df901783be9251fe276667f",
-      "released_at": "2026-06-08T17:46:10Z",
-      "channel": "Dev",
-      "release_notes": "## What's fixed\n\n- **The folder picker no longer \"resets\" mid-run.** Reloading the dashboard while a\n  scoped run was executing snapped the picker back to \"everything selected\" — it now\n  mirrors the run's *actual* scope (matched against the live status) until that run\n  finishes, instead of silently disagreeing with what's underneath it.",
-      "archives": [
-        {
-          "runtime": "any",
-          "abstraction": "6.0.0",
-          "url": "https://github.com/krbrs/shoko-plugin-integrity-checker/releases/download/v0.1.5/ShokoIntegrityChecker-v0.1.5-any.zip",
-          "checksum": "d7978c3418e33bba56252883e8950fea5bde11cc58bebe964150a6e332eecfd1"
-        }
-      ]
-    },
-    {
       "version": "0.1.4",
       "tag": "v0.1.4",
       "source_revision": "ab95b288201ee2af8696e8e0799ff82b34f30193",
