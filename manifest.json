@@ -1,0 +1,16 @@
+{
+  "id": "299604c0-f883-577b-a874-52e87f876fc8",
+  "name": "Integrity Checker",
+  "overview": "Re-hashes every file in your managed folders and flags any whose contents no longer match what Shoko has stored, leaving mismatches as unrecognized for re-matching — the same outcome as a manual single-file rescan, run in bulk with a small dashboard to drive it.",
+  "authors": "krbrs",
+  "repository_url": "https://github.com/krbrs/shoko-plugin-integrity-checker",
+  "homepage_url": null,
+  "tags": [
+    "integrity",
+    "hashing",
+    "maintenance",
+    "dashboard"
+  ],
+  "thumbnail": null,
+  "releases": []
+}

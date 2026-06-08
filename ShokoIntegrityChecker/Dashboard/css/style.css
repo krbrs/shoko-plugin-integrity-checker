@@ -1,0 +1,236 @@
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --fg: #1b1d22;
+  --muted: #6b7280;
+  --border: #e2e4e9;
+  --panel: #f7f8fa;
+  --accent: #4f7cff;
+  --accent-fg: #ffffff;
+  --danger: #d64545;
+  --ok: #2f9e5b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15171c;
+    --fg: #e7e9ee;
+    --muted: #9aa0ad;
+    --border: #2a2d35;
+    --panel: #1d2026;
+    --accent: #6f93ff;
+    --accent-fg: #0d1117;
+    --danger: #ff6b6b;
+    --ok: #4cc486;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+.page__header h1 {
+  margin: 0 0 6px;
+  font-size: 1.5rem;
+}
+
+.page__subtitle {
+  margin: 0 0 20px;
+  color: var(--muted);
+  max-width: 70ch;
+  line-height: 1.5;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.panel h2 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+}
+
+.panel__hint {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.panel__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.btn:hover {
+  opacity: 0.85;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+
+.btn--ghost {
+  background: transparent;
+}
+
+.status-pill {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.status-pill--running {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.status-pill--done {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.status-pill--cancelling {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.progress-wrap {
+  margin-top: 16px;
+}
+
+.progress {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.progress__bar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 200ms ease;
+}
+
+.progress__meta {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.progress__current {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+  text-align: right;
+}
+
+.summary {
+  margin-top: 14px;
+  font-size: 0.9rem;
+  color: var(--fg);
+}
+
+.error-banner {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.empty-state {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 12px 0 4px;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+.results-table th,
+.results-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.results-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.results-table td.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.results-table tr:last-child td {
+  border-bottom: none;
+}

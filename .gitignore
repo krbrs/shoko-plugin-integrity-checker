@@ -1,0 +1,92 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+publish/
+artifacts/
+*.dll
+*.pdb
+*.cache
+
+# Build artifacts produced by the release workflow
+*.zip
+
+# Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+.idea/
+*.user
+*.userosscache
+*.userprefs
+*.suo
+*.sln.docstates
+*.dbmdl
+*.jfm
+*.pfx
+*.publishsettings
+node_modules/
+.consolas/
+.toolstarget
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+project.lock.json
+project.fragment.lock.json
+packages/
+*.nuget.props
+*.nuget.targets
+
+# Test / coverage results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+*.trx
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+
+# Linux
+*~
+.directory
+.Trash-*
+.nfs*
+
+# Editors / misc tooling
+*.swp
+*.swo
+*~.nib
+.history/
+*.tmp
+*.bak
+*.orig
+*.log

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Integrity Checker</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="page">
+    <header class="page__header">
+      <h1>Integrity Checker</h1>
+      <p class="page__subtitle">
+        Re-hashes every file in your managed folders and flags any whose contents no longer match what Shoko has on
+        record. Mismatched files are detached from their release info and left unrecognized for re-matching — the
+        same outcome as rescanning a single file, just applied across your whole collection.
+      </p>
+    </header>
+
+    <section class="panel">
+      <div class="panel__row">
+        <div class="controls">
+          <button id="run-btn" class="btn btn--primary" type="button">Run integrity check</button>
+          <button id="cancel-btn" class="btn btn--ghost" type="button" hidden>Cancel</button>
+        </div>
+        <div id="status-pill" class="status-pill status-pill--idle">Idle</div>
+      </div>
+
+      <div id="progress-wrap" class="progress-wrap" hidden>
+        <div class="progress">
+          <div id="progress-bar" class="progress__bar"></div>
+        </div>
+        <div class="progress__meta">
+          <span id="progress-text">0 / 0</span>
+          <span id="current-file" class="progress__current"></span>
+        </div>
+      </div>
+
+      <div id="summary" class="summary" hidden></div>
+      <div id="error-banner" class="error-banner" hidden></div>
+    </section>
+
+    <section class="panel">
+      <h2>Mismatches</h2>
+      <p class="panel__hint">
+        Files listed here had their hash recomputed and it no longer matches what Shoko stored — they've been split
+        off into new, unrecognized video records. Use Shoko's normal file-matching tools to re-link them.
+      </p>
+      <div id="results-empty" class="empty-state">No mismatches found yet.</div>
+      <table id="results-table" class="results-table" hidden>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Managed folder</th>
+            <th>Previous hash</th>
+            <th>New hash</th>
+            <th>Detected</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
