@@ -108,10 +108,18 @@
       durationText = mins > 0 ? ` in ${mins}m ${secs}s` : ` in ${secs}s`;
     }
 
+    const mismatches = status.mismatches || [];
+    const needsRematch = mismatches.filter((issue) => !issue.isRecognized).length;
+    const autoRematched = mismatches.length - needsRematch;
+    let changesText = `${mismatches.length} hash change(s)`;
+    if (mismatches.length > 0) {
+      changesText += ` (${needsRematch} need re-matching, ${autoRematched} auto re-matched)`;
+    }
+
     els.summary.hidden = false;
     els.summary.textContent =
       `Last run finished ${completed.toLocaleString()}${durationText}: ` +
-      `${status.processedFiles} checked, ${status.mismatches.length} mismatch(es), ` +
+      `${status.processedFiles} checked, ${changesText}, ` +
       `${status.skippedFiles} skipped (unavailable on disk).`;
   }
 
@@ -139,6 +147,9 @@
     els.resultsBody.innerHTML = mismatches
       .map((issue) => {
         const detected = new Date(issue.detectedAt);
+        const badge = issue.isRecognized
+          ? `<span class="badge badge--ok">Auto re-matched</span>`
+          : `<span class="badge badge--attention">Needs re-matching</span>`;
         return `
           <tr>
             <td>
@@ -148,6 +159,7 @@
             <td>${escapeHtml(issue.managedFolderName)}</td>
             <td class="mono">${escapeHtml(issue.previousHash)}</td>
             <td class="mono">${escapeHtml(issue.newHash)}</td>
+            <td>${badge}</td>
             <td>${detected.toLocaleString()}</td>
           </tr>
         `;

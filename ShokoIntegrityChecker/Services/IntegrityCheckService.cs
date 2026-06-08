@@ -282,6 +282,16 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                     var newHash = result.Video.ED2K;
                     if (result.IsNewVideo || !string.Equals(previousHash, newHash, StringComparison.OrdinalIgnoreCase))
                     {
+                        // A video with release info has already been picked back up by
+                        // Shoko's release search under its corrected hash — recognized,
+                        // no action needed. One without is genuinely unrecognized and
+                        // needs to be re-matched manually, same as after a single-file
+                        // rescan. We still record both so the hash change itself stays
+                        // visible (it's useful to know a stored hash was wrong even when
+                        // Shoko fixed the match on its own), but the dashboard surfaces
+                        // them differently so "auto re-matched" files don't read as if
+                        // they need attention.
+                        var isRecognized = result.Video.ReleaseInfo is not null;
                         var issue = new IntegrityCheckIssue
                         {
                             PreviousVideoID = previousVideoId,
@@ -292,16 +302,31 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                             ManagedFolderName = file.ManagedFolder.Name,
                             PreviousHash = previousHash,
                             NewHash = newHash,
+                            IsRecognized = isRecognized,
                             DetectedAt = DateTime.Now,
                         };
                         _mismatches.Add(issue);
 
-                        _logger.LogWarning(
-                            "Integrity check: hash mismatch for \"{FileName}\" in \"{ManagedFolder}\" — was {OldHash}, now {NewHash}",
-                            file.FileName,
-                            file.ManagedFolder.Name,
-                            previousHash,
-                            newHash);
+                        if (isRecognized)
+                        {
+                            _logger.LogInformation(
+                                "Integrity check: hash changed for \"{FileName}\" in \"{ManagedFolder}\" (was {OldHash}, now {NewHash}) "
+                                + "but it was automatically re-matched to a release — no action needed",
+                                file.FileName,
+                                file.ManagedFolder.Name,
+                                previousHash,
+                                newHash);
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "Integrity check: hash mismatch for \"{FileName}\" in \"{ManagedFolder}\" — was {OldHash}, now {NewHash}, "
+                                + "and the file is now unrecognized",
+                                file.FileName,
+                                file.ManagedFolder.Name,
+                                previousHash,
+                                newHash);
+                        }
                     }
                 }
                 catch (OperationCanceledException)

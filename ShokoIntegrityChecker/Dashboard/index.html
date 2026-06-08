@@ -12,8 +12,9 @@
       <h1>Integrity Checker</h1>
       <p class="page__subtitle">
         Re-hashes every file in your managed folders and flags any whose contents no longer match what Shoko has on
-        record. Mismatched files are detached from their release info and left unrecognized for re-matching — the
-        same outcome as rescanning a single file, just applied across your whole collection.
+        record. Files with a changed hash are detached from their old release info and re-searched — the same
+        outcome as rescanning a single file, just applied across your whole collection. Most come back unrecognized
+        and need a manual re-match; some get picked back up automatically and need no action either way.
       </p>
     </header>
 
@@ -41,12 +42,16 @@
     </section>
 
     <section class="panel">
-      <h2>Mismatches</h2>
+      <h2>Hash changes</h2>
       <p class="panel__hint">
-        Files listed here had their hash recomputed and it no longer matches what Shoko stored — they've been split
-        off into new, unrecognized video records. Use Shoko's normal file-matching tools to re-link them.
+        Files listed here had their hash recomputed and it no longer matched what Shoko had on record, so their old
+        release info was detached and a new video record was created — same as what happens after a single-file
+        rescan. Most need to be re-matched manually with Shoko's normal file-matching tools (marked
+        <strong>Needs re-matching</strong>); some get picked back up automatically by Shoko's release search under
+        their corrected hash and need no action (marked <strong>Auto re-matched</strong>) — listed here only so the
+        hash correction itself stays visible.
       </p>
-      <div id="results-empty" class="empty-state">No mismatches found yet.</div>
+      <div id="results-empty" class="empty-state">No hash changes found yet.</div>
       <table id="results-table" class="results-table" hidden>
         <thead>
           <tr>
@@ -54,6 +59,7 @@
             <th>Managed folder</th>
             <th>Previous hash</th>
             <th>New hash</th>
+            <th>Status</th>
             <th>Detected</th>
           </tr>
         </thead>

@@ -156,6 +156,16 @@ public sealed class IntegrityCheckIssue
     public required string NewHash { get; init; }
 
     /// <summary>
+    /// Whether the file ended up matched to a release after the rehash.
+    /// <see langword="true"/> means Shoko's release search immediately picked
+    /// the file back up under its new hash (same or different release) — no
+    /// action needed. <see langword="false"/> means the file is now
+    /// unrecognized and needs to be re-matched manually, the same as after a
+    /// single-file rescan.
+    /// </summary>
+    public required bool IsRecognized { get; init; }
+
+    /// <summary>
     /// When the mismatch was detected.
     /// </summary>
     public required DateTime DetectedAt { get; init; }
