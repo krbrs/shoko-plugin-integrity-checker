@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Video.Services;
 using ShokoIntegrityChecker.Models;
 
@@ -9,6 +11,8 @@ namespace ShokoIntegrityChecker.Services;
 /// <inheritdoc cref="IIntegrityCheckService" />
 public sealed class IntegrityCheckService : IIntegrityCheckService
 {
+    private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
+
     private readonly IVideoService _videoService;
 
     private readonly IVideoHashingService _hashingService;
@@ -16,6 +20,14 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
     private readonly ISystemService _systemService;
 
     private readonly ILogger<IntegrityCheckService> _logger;
+
+    /// <summary>
+    /// Where the most recent run's results are persisted as JSON, so they
+    /// survive a server restart or plugin reload. Lives at
+    /// <c>{DataPath}/configuration/{PluginID}/results.json</c> — the same
+    /// per-plugin directory convention the host uses (and purges on uninstall).
+    /// </summary>
+    private readonly string _resultsFilePath;
 
     private readonly Lock _stateLock = new();
 
@@ -47,17 +59,104 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
     /// <param name="videoService">Provides access to managed folders and video files.</param>
     /// <param name="hashingService">Used to force-recompute file hashes.</param>
     /// <param name="systemService">Used to confirm the server has finished starting up.</param>
+    /// <param name="applicationPaths">Used to locate the plugin's per-plugin data directory.</param>
     /// <param name="logger">Logger for this service.</param>
     public IntegrityCheckService(
         IVideoService videoService,
         IVideoHashingService hashingService,
         ISystemService systemService,
+        IApplicationPaths applicationPaths,
         ILogger<IntegrityCheckService> logger)
     {
         _videoService = videoService;
         _hashingService = hashingService;
         _systemService = systemService;
         _logger = logger;
+
+        var pluginDataDirectory = Path.Combine(applicationPaths.ConfigurationsPath, IntegrityCheckerPlugin.StaticID.ToString());
+        _resultsFilePath = Path.Combine(pluginDataDirectory, "results.json");
+
+        LoadPersistedResult(pluginDataDirectory);
+    }
+
+    /// <summary>
+    /// Restores the most recently persisted run's results, if any, so the
+    /// dashboard has something to show immediately after a restart instead of
+    /// appearing as if no check had ever been run.
+    /// </summary>
+    private void LoadPersistedResult(string pluginDataDirectory)
+    {
+        try
+        {
+            Directory.CreateDirectory(pluginDataDirectory);
+
+            if (!File.Exists(_resultsFilePath))
+                return;
+
+            var json = File.ReadAllText(_resultsFilePath);
+            var persisted = JsonSerializer.Deserialize<PersistedIntegrityCheckResult>(json, SerializerOptions);
+            if (persisted is null)
+                return;
+
+            lock (_stateLock)
+            {
+                _startedAt = persisted.StartedAt;
+                _completedAt = persisted.CompletedAt;
+                _totalFiles = persisted.TotalFiles;
+                _processedFiles = persisted.ProcessedFiles;
+                _skippedFiles = persisted.SkippedFiles;
+                _lastError = persisted.LastError;
+            }
+
+            foreach (var issue in persisted.Mismatches)
+                _mismatches.Add(issue);
+
+            _logger.LogInformation(
+                "Restored a previous integrity check run from disk: {Mismatches} mismatch(es) recorded as of {CompletedAt}",
+                persisted.Mismatches.Count,
+                persisted.CompletedAt);
+        }
+        catch (Exception ex)
+        {
+            // Corrupt or unreadable results file shouldn't prevent the plugin
+            // from loading — just start fresh and log it.
+            _logger.LogWarning(ex, "Failed to restore persisted integrity check results from \"{Path}\"; starting fresh", _resultsFilePath);
+        }
+    }
+
+    /// <summary>
+    /// Writes the current run's results to disk so they survive a restart or
+    /// plugin reload. Writes to a temporary file first and then replaces the
+    /// real one, so a crash mid-write can't corrupt the persisted results.
+    /// </summary>
+    private void PersistResult()
+    {
+        try
+        {
+            PersistedIntegrityCheckResult snapshot;
+            lock (_stateLock)
+            {
+                snapshot = new()
+                {
+                    StartedAt = _startedAt,
+                    CompletedAt = _completedAt,
+                    TotalFiles = _totalFiles,
+                    ProcessedFiles = _processedFiles,
+                    SkippedFiles = _skippedFiles,
+                    Mismatches = [.. _mismatches.OrderByDescending(issue => issue.DetectedAt)],
+                    LastError = _lastError,
+                };
+            }
+
+            var json = JsonSerializer.Serialize(snapshot, SerializerOptions);
+            var tempPath = _resultsFilePath + ".tmp";
+            File.WriteAllText(tempPath, json);
+            File.Move(tempPath, _resultsFilePath, overwrite: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to persist integrity check results to \"{Path}\"", _resultsFilePath);
+        }
     }
 
     /// <inheritdoc />
@@ -239,6 +338,10 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                 _totalFiles,
                 _mismatches.Count,
                 _skippedFiles);
+
+            // Persist so the dashboard still has these results after a
+            // restart or plugin reload, instead of resetting to "no run yet".
+            PersistResult();
         }
     }
 }

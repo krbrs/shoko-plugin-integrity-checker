@@ -65,6 +65,51 @@ public sealed class IntegrityCheckStatus
 }
 
 /// <summary>
+/// A serializable snapshot of the most recent completed run, written to disk
+/// so results survive a server restart or plugin reload. Deliberately omits
+/// the runtime-only fields of <see cref="IntegrityCheckStatus"/> (<c>IsRunning</c>,
+/// <c>IsCancellationRequested</c>, <c>CurrentFile</c>) since those never make
+/// sense to restore from a previous process.
+/// </summary>
+public sealed class PersistedIntegrityCheckResult
+{
+    /// <summary>
+    /// When the persisted run started.
+    /// </summary>
+    public DateTime? StartedAt { get; init; }
+
+    /// <summary>
+    /// When the persisted run finished.
+    /// </summary>
+    public DateTime? CompletedAt { get; init; }
+
+    /// <summary>
+    /// Total number of files that were queued for the persisted run.
+    /// </summary>
+    public int TotalFiles { get; init; }
+
+    /// <summary>
+    /// Number of files that had been re-hashed by the time the persisted run ended.
+    /// </summary>
+    public int ProcessedFiles { get; init; }
+
+    /// <summary>
+    /// Number of files skipped because they were unavailable on disk during the persisted run.
+    /// </summary>
+    public int SkippedFiles { get; init; }
+
+    /// <summary>
+    /// Mismatches found during the persisted run.
+    /// </summary>
+    public IReadOnlyList<IntegrityCheckIssue> Mismatches { get; init; } = [];
+
+    /// <summary>
+    /// The last error message recorded for the persisted run, if any.
+    /// </summary>
+    public string? LastError { get; init; }
+}
+
+/// <summary>
 /// A single file that failed its integrity check — its on-disk contents no
 /// longer hash to the value Shoko has stored for it.
 /// </summary>

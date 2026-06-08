@@ -36,6 +36,10 @@ ShokoIntegrityChecker/
    path the built-in "Rehash" file action uses. If the recomputed hash differs (or a new video record was spun up),
    it's recorded as a mismatch; Shoko's hashing service has already detached the file and left it unrecognized.
 4. The dashboard polls `/status` every 1.5s while a run is active and renders progress plus a results table.
+5. After each run, `IntegrityCheckService` writes its results to `results.json` under the plugin's per-plugin
+   configuration directory (`{Shoko data dir}/configuration/{plugin GUID}/`, the same location the host purges on
+   uninstall) and reloads it on startup — so results survive a server restart or plugin reload instead of resetting
+   to "no run yet".
 
 ## Building
 
@@ -108,7 +112,5 @@ the `stable` branch (enable "Read and write permissions" for *Workflow permissio
 - **Recurring schedule**: register the check via `RecurringJobRegistry` so it runs automatically (e.g. weekly)
   instead of only on demand.
 - **Scoping**: let the user pick specific managed folders rather than always checking everything.
-- **Persistence**: results currently live in memory and reset on server restart / plugin reload — could be persisted
-  if you want history across runs.
 - **Settings page**: expose `MaxAutoScanAttemptsPerVideo`-style throttling or concurrency limits if large libraries
   make a full re-hash too heavy to run during normal usage.
