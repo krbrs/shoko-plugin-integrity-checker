@@ -14,6 +14,22 @@
   "thumbnail": null,
   "releases": [
     {
+      "version": "0.1.4",
+      "tag": "v0.1.4",
+      "source_revision": "ab95b288201ee2af8696e8e0799ff82b34f30193",
+      "released_at": "2026-06-08T17:25:53Z",
+      "channel": "Stable",
+      "release_notes": "## What's fixed\n\n- **Drop-source (\"import\") folders no longer show up in the Scope picker.** They're a\n  transient staging area — files land there briefly before being relocated to their real\n  home, so offering them for an integrity check didn't make sense (and could even race\n  with an in-progress import). Folders that double as both a drop source *and* destination\n  are still offered, since they also serve as a permanent home for files.\n- **Added a loading spinner to the Scope picker.** Fetching the folder list can take a\n  noticeable moment on larger libraries, and the plain \"Loading managed folders…\" text\n  alone didn't make it obvious that something was happening.",
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/krbrs/shoko-plugin-integrity-checker/releases/download/v0.1.4/ShokoIntegrityChecker-v0.1.4-any.zip",
+          "checksum": "4a9ad56f4ec2e03e4f8123eb1bb243a6150d12fbef8f8f31bc3000ced689000a"
+        }
+      ]
+    },
+    {
       "version": "0.1.3",
       "tag": "v0.1.3",
       "source_revision": "b9be4159cada1578bba2a7ed43b1c51be9f1aa85",
