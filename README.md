@@ -50,8 +50,7 @@ ShokoIntegrityChecker/
 
 ## Building
 
-This was scaffolded in an environment without the .NET SDK, so the build hasn't been verified end-to-end — please
-build it locally:
+Build it locally:
 
 ```bash
 cd "ShokoIntegrityChecker"
