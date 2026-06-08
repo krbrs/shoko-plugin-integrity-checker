@@ -14,6 +14,22 @@
   "thumbnail": null,
   "releases": [
     {
+      "version": "0.1.7",
+      "tag": "v0.1.7",
+      "source_revision": "7e51e835c3f346f775fb6875787c976bfe0e57bc",
+      "released_at": "2026-06-08T18:18:05Z",
+      "channel": "Dev",
+      "release_notes": "## What's fixed\n\n- **The \"Loading managed folders…\" spinner no longer lingers over the populated list.** A CSS change in v0.1.4 gave `.empty-state` its own `display: flex`, which silently overrode the browser's default rule for hiding `hidden` elements — so the loading row stayed visible (spinner and all) once folders had actually loaded. It now hides correctly.",
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/krbrs/shoko-plugin-integrity-checker/releases/download/v0.1.7/ShokoIntegrityChecker-v0.1.7-any.zip",
+          "checksum": "948745f80e3fdc9433a30708d04c50be5eccf2ab0bed4ef366a2bd34b6d8e23e"
+        }
+      ]
+    },
+    {
       "version": "0.1.6",
       "tag": "v0.1.6",
       "source_revision": "0ab61c7d392f31e5a8f98e5f99259e3d859e4c4f",
