@@ -113,13 +113,29 @@
     updateScopeToggleLabel();
   }
 
-  async function loadFolders() {
+  async function loadFolders(status) {
     try {
       folders = await fetchFolders();
-      // Default to "everything selected" so the picker mirrors the previous,
-      // unscoped behaviour until the user narrows it down themselves.
       selectedFolderIDs.clear();
-      for (const folder of folders) selectedFolderIDs.add(folder.managedFolderID);
+
+      // If a scoped run is currently in progress (e.g. the dashboard was
+      // reloaded mid-run), mirror *its* selection instead of defaulting to
+      // "everything selected" — otherwise the greyed-out picker shows a
+      // different selection than the run that's actually executing, which
+      // looks like the user's choice got reset. Matched by name since that's
+      // all the status exposes; managed folder names are unique.
+      const runningScope = status?.isRunning ? status.scopedFolderNames || [] : [];
+      if (runningScope.length > 0) {
+        const scopedNames = new Set(runningScope);
+        for (const folder of folders) {
+          if (scopedNames.has(folder.name)) selectedFolderIDs.add(folder.managedFolderID);
+        }
+      } else {
+        // Otherwise default to "everything selected" so the picker mirrors
+        // the previous, unscoped behaviour until the user narrows it down.
+        for (const folder of folders) selectedFolderIDs.add(folder.managedFolderID);
+      }
+
       renderFolders();
     } catch (err) {
       console.error(err);
@@ -290,8 +306,10 @@
       applyStatus(status);
       stopPollingIfIdle(status);
       if (status.isRunning) startPolling();
+      return status;
     } catch (err) {
       console.error(err);
+      return null;
     }
   }
 
@@ -339,6 +357,11 @@
     }
   });
 
-  loadFolders();
-  refresh();
+  // Fetch the current status *before* loading the folder picker, so that if a
+  // scoped run is already in progress (e.g. the dashboard was just reloaded),
+  // the picker can mirror that run's actual selection — see loadFolders().
+  (async () => {
+    const status = await refresh();
+    await loadFolders(status);
+  })();
 })();
