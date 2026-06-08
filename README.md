@@ -88,13 +88,13 @@ This repo is set up to be installed straight from Shoko's plugin browser, the sa
   [`revam/dotnet-shoko-plugin-manifest`](https://github.com/revam/dotnet-shoko-plugin-manifest).
 - `.github/workflows/release.yml` builds the project whenever a GitHub Release is published, zips the plugin's output
   (DLL + `dashboard/`), attaches it to the release, then rewrites `manifest.json` with the new version's download URL
-  and SHA-256 checksum and pushes that to a `stable` branch — mirroring revam's release-driven update pattern.
+  and SHA-256 checksum and pushes that to `main` — mirroring revam's release-driven update pattern.
 
 To install it in Shoko:
 
 1. Open the WebUI and go to **Settings → Plugins → Repositories**.
 2. Add a new repository pointing at the *raw* manifest URL for this plugin:
-   `https://raw.githubusercontent.com/krbrs/shoko-plugin-integrity-checker/stable/manifest.json`
+   `https://raw.githubusercontent.com/krbrs/shoko-plugin-integrity-checker/main/manifest.json`
 3. Browse the repository's plugin list, select **Integrity Checker**, and install it.
 4. Restart Shoko Server. The dashboard then appears under **Settings → Plugins**.
 
@@ -105,13 +105,12 @@ Once pushed to GitHub:
 1. Tag and publish a GitHub Release (e.g. tag `v0.1.0`).
 2. The `Release Build` workflow builds the project, zips `ShokoIntegrityChecker.dll` + `dashboard/` as
    `ShokoIntegrityChecker-<tag>-any.zip`, uploads it to the release, computes its checksum, and prepends a new entry to
-   `manifest.json`'s `releases` array — then commits and pushes that to the `stable` branch (create that branch first;
-   it's what the manifest URL above points readers at, keeping `master`/`main` free for in-progress work).
+   `manifest.json`'s `releases` array — then commits and pushes that to `main`.
 3. Anyone with the repository already added in Shoko will see the new version show up to install/update.
 
 The workflow needs no extra secrets — it uses the default `GITHUB_TOKEN`, but that token needs permission to push to
-the `stable` branch (enable "Read and write permissions" for *Workflow permissions* under
-**Settings → Actions → General**, or branch-protect `stable` to allow the `github-actions[bot]` actor).
+`main` (enable "Read and write permissions" for *Workflow permissions* under **Settings → Actions → General**, or
+branch-protect `main` to allow the `github-actions[bot]` actor).
 
 ## Possible follow-ups
 
