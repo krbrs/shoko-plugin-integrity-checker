@@ -19,6 +19,19 @@
     </header>
 
     <section class="panel">
+      <div class="scope">
+        <div class="scope__header">
+          <h2>Scope</h2>
+          <button id="scope-toggle-btn" class="link-btn" type="button">Select all</button>
+        </div>
+        <p class="panel__hint">
+          Choose which managed folders to check. Leave everything selected to check your whole library, or narrow it
+          down to a few folders for a faster, more targeted run.
+        </p>
+        <div id="folders-loading" class="empty-state">Loading managed folders…</div>
+        <div id="folders-list" class="folder-list" hidden></div>
+      </div>
+
       <div class="panel__row">
         <div class="controls">
           <button id="run-btn" class="btn btn--primary" type="button">Run integrity check</button>

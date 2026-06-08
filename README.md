@@ -29,17 +29,21 @@ ShokoIntegrityChecker/
 
 1. `IntegrityCheckerPlugin` registers `IIntegrityCheckService` with the host's DI container and advertises a
    dashboard page via `IPlugin.GetPages()` (shown up under Settings → Plugins in the WebUI, embedded in an iframe).
-2. `IntegrityCheckController` exposes `POST /api/plugin/integritychecker/run`, `POST .../cancel`, and
-   `GET .../status`, plus serves the static dashboard at `GET .../dashboard`.
-3. `IntegrityCheckService` snapshots every available file across all managed folders (`IVideoService`), then calls
-   `IVideoHashingService.GetHashesForFile(file, useExistingHashes: false, ...)` for each one — the same force-rehash
-   path the built-in "Rehash" file action uses. If the recomputed hash differs (or a new video record was spun up),
-   it's recorded as a hash change; Shoko's hashing service has already detached the file from its old release info.
-   Whether the new video record ends up matched to a release (`IVideo.ReleaseInfo is not null`) determines how the
-   dashboard labels it: **Auto re-matched** (Shoko's release search picked it back up under the corrected hash, no
-   action needed) or **Needs re-matching** (genuinely unrecognized now, same as after a single-file rescan).
-4. The dashboard polls `/status` every 1.5s while a run is active and renders progress plus a results table.
-5. After each run, `IntegrityCheckService` writes its results to `results.json` under the plugin's per-plugin
+2. `IntegrityCheckController` exposes `POST /api/plugin/integritychecker/run`, `POST .../cancel`,
+   `GET .../status`, and `GET .../folders`, plus serves the static dashboard at `GET .../dashboard`.
+3. The dashboard's **Scope** picker (backed by `GET .../folders`) lets you check every managed folder — the
+   default — or narrow a run down to just the ones you select; your choice is sent as `managedFolderIDs` in the
+   `POST .../run` body and only files under those folders are walked.
+4. `IntegrityCheckService` snapshots every available file across the selected managed folders (`IVideoService`),
+   then calls `IVideoHashingService.GetHashesForFile(file, useExistingHashes: false, ...)` for each one — the same
+   force-rehash path the built-in "Rehash" file action uses. If the recomputed hash differs (or a new video record
+   was spun up), it's recorded as a hash change; Shoko's hashing service has already detached the file from its old
+   release info. Whether the new video record ends up matched to a release (`IVideo.ReleaseInfo is not null`)
+   determines how the dashboard labels it: **Auto re-matched** (Shoko's release search picked it back up under the
+   corrected hash, no action needed) or **Needs re-matching** (genuinely unrecognized now, same as after a
+   single-file rescan).
+5. The dashboard polls `/status` every 1.5s while a run is active and renders progress plus a results table.
+6. After each run, `IntegrityCheckService` writes its results to `results.json` under the plugin's per-plugin
    configuration directory (`{Shoko data dir}/configuration/{plugin GUID}/`, the same location the host purges on
    uninstall) and reloads it on startup — so results survive a server restart or plugin reload instead of resetting
    to "no run yet".
@@ -116,6 +120,5 @@ branch-protect `main` to allow the `github-actions[bot]` actor).
 
 - **Recurring schedule**: register the check via `RecurringJobRegistry` so it runs automatically (e.g. weekly)
   instead of only on demand.
-- **Scoping**: let the user pick specific managed folders rather than always checking everything.
 - **Settings page**: expose `MaxAutoScanAttemptsPerVideo`-style throttling or concurrency limits if large libraries
   make a full re-hash too heavy to run during normal usage.

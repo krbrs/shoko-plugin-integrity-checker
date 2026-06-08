@@ -58,16 +58,25 @@ public sealed class IntegrityCheckController : ControllerBase
         => Ok(_service.GetStatus());
 
     /// <summary>
-    /// Starts a new integrity check run across every file in every managed
-    /// folder. The run continues in the background; poll <c>/status</c> for
-    /// progress.
+    /// Lists every managed folder the check could be scoped to, so the
+    /// dashboard can offer a picker.
+    /// </summary>
+    [HttpGet("folders")]
+    [ProducesResponseType<IReadOnlyList<ManagedFolderInfo>>(StatusCodes.Status200OK)]
+    public ActionResult<IReadOnlyList<ManagedFolderInfo>> GetFolders()
+        => Ok(_service.GetManagedFolders());
+
+    /// <summary>
+    /// Starts a new integrity check run, optionally scoped to a subset of
+    /// managed folders (every folder is checked if none are specified). The
+    /// run continues in the background; poll <c>/status</c> for progress.
     /// </summary>
     [HttpPost("run")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public ActionResult Run()
+    public ActionResult Run([FromBody] RunRequest? request = null)
     {
-        if (!_service.StartCheck())
+        if (!_service.StartCheck(request?.ManagedFolderIDs))
             return Conflict("An integrity check is already running.");
 
         return Ok();

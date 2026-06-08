@@ -43,6 +43,10 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
 
     private DateTime? _completedAt;
 
+    private IReadOnlyList<string> _scopedFolderNames = [];
+
+    private IReadOnlyList<int>? _scopedFolderIDs;
+
     private int _totalFiles;
 
     private int _processedFiles;
@@ -102,6 +106,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
             {
                 _startedAt = persisted.StartedAt;
                 _completedAt = persisted.CompletedAt;
+                _scopedFolderNames = persisted.ScopedFolderNames;
                 _totalFiles = persisted.TotalFiles;
                 _processedFiles = persisted.ProcessedFiles;
                 _skippedFiles = persisted.SkippedFiles;
@@ -140,6 +145,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                 {
                     StartedAt = _startedAt,
                     CompletedAt = _completedAt,
+                    ScopedFolderNames = _scopedFolderNames,
                     TotalFiles = _totalFiles,
                     ProcessedFiles = _processedFiles,
                     SkippedFiles = _skippedFiles,
@@ -170,6 +176,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                 IsCancellationRequested = _cancellationTokenSource?.IsCancellationRequested ?? false,
                 StartedAt = _startedAt,
                 CompletedAt = _completedAt,
+                ScopedFolderNames = _scopedFolderNames,
                 TotalFiles = _totalFiles,
                 ProcessedFiles = _processedFiles,
                 SkippedFiles = _skippedFiles,
@@ -181,8 +188,30 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
     }
 
     /// <inheritdoc />
-    public bool StartCheck()
+    public IReadOnlyList<ManagedFolderInfo> GetManagedFolders()
+        => [.. _videoService.GetAllManagedFolders()
+            .Select(folder => new ManagedFolderInfo { ID = folder.ID, Name = folder.Name, Path = folder.Path })
+            .OrderBy(folder => folder.Name, StringComparer.OrdinalIgnoreCase)];
+
+    /// <inheritdoc />
+    public bool StartCheck(IReadOnlyList<int>? managedFolderIDs = null)
     {
+        // Resolve the requested IDs against the real managed folders up front
+        // so an unknown/stale ID can't silently shrink the scope, and so the
+        // dashboard has friendly names to display for the run it kicked off.
+        var requestedIDs = managedFolderIDs is { Count: > 0 } ? new HashSet<int>(managedFolderIDs) : null;
+        IReadOnlyList<int>? scopedIDs = null;
+        IReadOnlyList<string> scopedNames = [];
+        if (requestedIDs is not null)
+        {
+            var matched = _videoService.GetAllManagedFolders()
+                .Where(folder => requestedIDs.Contains(folder.ID))
+                .ToList();
+
+            scopedIDs = [.. matched.Select(folder => folder.ID)];
+            scopedNames = [.. matched.Select(folder => folder.Name).OrderBy(name => name, StringComparer.OrdinalIgnoreCase)];
+        }
+
         lock (_stateLock)
         {
             if (_isRunning)
@@ -191,6 +220,8 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
             _isRunning = true;
             _startedAt = DateTime.Now;
             _completedAt = null;
+            _scopedFolderIDs = scopedIDs;
+            _scopedFolderNames = scopedNames;
             _totalFiles = 0;
             _processedFiles = 0;
             _skippedFiles = 0;
@@ -230,9 +261,20 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                 return;
             }
 
+            IReadOnlyList<int>? scopedFolderIDs;
+            lock (_stateLock)
+                scopedFolderIDs = _scopedFolderIDs;
+
+            var folders = _videoService.GetAllManagedFolders().ToList();
+            if (scopedFolderIDs is { Count: > 0 })
+            {
+                var scopedSet = new HashSet<int>(scopedFolderIDs);
+                folders = [.. folders.Where(folder => scopedSet.Contains(folder.ID))];
+            }
+
             // Snapshot the file list up-front so the progress total is stable
             // for the duration of the run.
-            var files = _videoService.GetAllManagedFolders()
+            var files = folders
                 .SelectMany(folder => _videoService.GetVideoFilesInManagedFolder(folder))
                 .Where(file => file.IsAvailable)
                 .ToList();
@@ -240,7 +282,17 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
             lock (_stateLock)
                 _totalFiles = files.Count;
 
-            _logger.LogInformation("Starting integrity check across {FileCount} file(s)", files.Count);
+            if (scopedFolderIDs is { Count: > 0 })
+            {
+                _logger.LogInformation(
+                    "Starting integrity check across {FileCount} file(s) in {FolderCount} selected managed folder(s)",
+                    files.Count,
+                    folders.Count);
+            }
+            else
+            {
+                _logger.LogInformation("Starting integrity check across {FileCount} file(s)", files.Count);
+            }
 
             foreach (var file in files)
             {

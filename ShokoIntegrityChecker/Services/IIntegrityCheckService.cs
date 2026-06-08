@@ -15,13 +15,23 @@ public interface IIntegrityCheckService
     IntegrityCheckStatus GetStatus();
 
     /// <summary>
+    /// Lists every managed folder the check could be scoped to, for the
+    /// dashboard's folder picker.
+    /// </summary>
+    IReadOnlyList<ManagedFolderInfo> GetManagedFolders();
+
+    /// <summary>
     /// Starts a new integrity check run in the background.
     /// </summary>
+    /// <param name="managedFolderIDs">
+    /// IDs of the managed folders to check, or <see langword="null"/>/empty to
+    /// check every managed folder. Unknown IDs are ignored.
+    /// </param>
     /// <returns>
     /// <see langword="true"/> if a new run was started; <see langword="false"/>
     /// if a run was already in progress.
     /// </returns>
-    bool StartCheck();
+    bool StartCheck(IReadOnlyList<int>? managedFolderIDs = null);
 
     /// <summary>
     /// Requests cancellation of the currently running check, if any.

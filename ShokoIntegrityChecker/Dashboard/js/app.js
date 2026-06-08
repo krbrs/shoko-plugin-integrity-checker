@@ -10,6 +10,9 @@
   const els = {
     runBtn: document.getElementById("run-btn"),
     cancelBtn: document.getElementById("cancel-btn"),
+    scopeToggleBtn: document.getElementById("scope-toggle-btn"),
+    foldersLoading: document.getElementById("folders-loading"),
+    foldersList: document.getElementById("folders-list"),
     statusPill: document.getElementById("status-pill"),
     progressWrap: document.getElementById("progress-wrap"),
     progressBar: document.getElementById("progress-bar"),
@@ -23,9 +26,16 @@
   };
 
   let pollHandle = null;
+  let folders = [];
+  const selectedFolderIDs = new Set();
 
-  async function apiPost(path) {
-    const response = await fetch(`${API_BASE}${path}`, { method: "POST" });
+  async function apiPost(path, body) {
+    const init = { method: "POST" };
+    if (body !== undefined) {
+      init.headers = { "Content-Type": "application/json" };
+      init.body = JSON.stringify(body);
+    }
+    const response = await fetch(`${API_BASE}${path}`, init);
     if (!response.ok && response.status !== 409) {
       throw new Error(`Request to ${path} failed (${response.status})`);
     }
@@ -52,6 +62,69 @@
     const response = await fetch(`${API_BASE}status`, { cache: "no-store" });
     if (!response.ok) throw new Error(`Failed to fetch status (${response.status})`);
     return camelize(await response.json());
+  }
+
+  async function fetchFolders() {
+    const response = await fetch(`${API_BASE}folders`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Failed to fetch managed folders (${response.status})`);
+    return camelize(await response.json());
+  }
+
+  function updateScopeToggleLabel() {
+    els.scopeToggleBtn.textContent = selectedFolderIDs.size >= folders.length ? "Select none" : "Select all";
+  }
+
+  function renderFolders() {
+    if (folders.length === 0) {
+      els.foldersLoading.hidden = false;
+      els.foldersLoading.textContent = "No managed folders found.";
+      els.foldersList.hidden = true;
+      return;
+    }
+
+    els.foldersLoading.hidden = true;
+    els.foldersList.hidden = false;
+    els.foldersList.innerHTML = folders
+      .map((folder) => {
+        const checked = selectedFolderIDs.has(folder.id) ? "checked" : "";
+        return `
+          <label class="folder-list__item">
+            <input type="checkbox" data-folder-id="${folder.id}" ${checked} />
+            <span>
+              <span class="folder-list__name">${escapeHtml(folder.name)}</span>
+              <span class="folder-list__path mono">${escapeHtml(folder.path)}</span>
+            </span>
+          </label>
+        `;
+      })
+      .join("");
+
+    for (const checkbox of els.foldersList.querySelectorAll("input[type=checkbox]")) {
+      checkbox.addEventListener("change", () => {
+        const id = Number(checkbox.dataset.folderId);
+        if (checkbox.checked) selectedFolderIDs.add(id);
+        else selectedFolderIDs.delete(id);
+        updateScopeToggleLabel();
+      });
+    }
+
+    updateScopeToggleLabel();
+  }
+
+  async function loadFolders() {
+    try {
+      folders = await fetchFolders();
+      // Default to "everything selected" so the picker mirrors the previous,
+      // unscoped behaviour until the user narrows it down themselves.
+      selectedFolderIDs.clear();
+      for (const folder of folders) selectedFolderIDs.add(folder.id);
+      renderFolders();
+    } catch (err) {
+      console.error(err);
+      els.foldersLoading.hidden = false;
+      els.foldersLoading.textContent = "Couldn't load managed folders — see the browser console for details.";
+      els.foldersList.hidden = true;
+    }
   }
 
   function setStatusPill(status) {
@@ -116,11 +189,16 @@
       changesText += ` (${needsRematch} need re-matching, ${autoRematched} auto re-matched)`;
     }
 
+    const scopedNames = status.scopedFolderNames || [];
+    const scopeText = scopedNames.length > 0
+      ? ` Scoped to: ${scopedNames.join(", ")}.`
+      : "";
+
     els.summary.hidden = false;
     els.summary.textContent =
       `Last run finished ${completed.toLocaleString()}${durationText}: ` +
       `${status.processedFiles} checked, ${changesText}, ` +
-      `${status.skippedFiles} skipped (unavailable on disk).`;
+      `${status.skippedFiles} skipped (unavailable on disk).${scopeText}`;
   }
 
   function renderError(status) {
@@ -183,6 +261,12 @@
     els.runBtn.disabled = status.isRunning;
     els.cancelBtn.hidden = !status.isRunning;
     els.cancelBtn.disabled = status.isCancellationRequested;
+
+    // The scope only matters for the next run — lock it while one's in
+    // progress so it can't look like it's affecting the current run.
+    els.scopeToggleBtn.disabled = status.isRunning;
+    for (const checkbox of els.foldersList.querySelectorAll("input[type=checkbox]"))
+      checkbox.disabled = status.isRunning;
   }
 
   function startPolling() {
@@ -208,10 +292,30 @@
     }
   }
 
+  els.scopeToggleBtn.addEventListener("click", () => {
+    if (selectedFolderIDs.size >= folders.length) {
+      selectedFolderIDs.clear();
+    } else {
+      selectedFolderIDs.clear();
+      for (const folder of folders) selectedFolderIDs.add(folder.id);
+    }
+    renderFolders();
+  });
+
   els.runBtn.addEventListener("click", async () => {
+    if (folders.length > 0 && selectedFolderIDs.size === 0) {
+      els.errorBanner.hidden = false;
+      els.errorBanner.textContent = "Select at least one managed folder to check.";
+      return;
+    }
+
     els.runBtn.disabled = true;
     try {
-      await apiPost("run");
+      // Sending every folder's ID is equivalent to sending none (both mean
+      // "check everything"), but being explicit keeps the dashboard's
+      // selection and the run's actual scope visibly in sync.
+      const managedFolderIDs = selectedFolderIDs.size === folders.length ? null : [...selectedFolderIDs];
+      await apiPost("run", { managedFolderIDs });
       startPolling();
       await refresh();
     } catch (err) {
@@ -232,5 +336,6 @@
     }
   });
 
+  loadFolders();
   refresh();
 })();

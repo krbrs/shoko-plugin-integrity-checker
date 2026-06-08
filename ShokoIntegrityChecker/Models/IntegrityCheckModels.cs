@@ -1,6 +1,42 @@
 namespace ShokoIntegrityChecker.Models;
 
 /// <summary>
+/// A managed folder available to be scoped into (or out of) an integrity
+/// check run, returned by the <c>/folders</c> endpoint so the dashboard can
+/// offer a picker.
+/// </summary>
+public sealed class ManagedFolderInfo
+{
+    /// <summary>
+    /// The managed folder's ID, as passed back in <see cref="RunRequest.ManagedFolderIDs"/>.
+    /// </summary>
+    public required int ID { get; init; }
+
+    /// <summary>
+    /// The managed folder's friendly name.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// The managed folder's absolute path on disk.
+    /// </summary>
+    public required string Path { get; init; }
+}
+
+/// <summary>
+/// Request body for <c>POST /run</c>, letting the caller scope the check to a
+/// subset of managed folders instead of the whole library.
+/// </summary>
+public sealed class RunRequest
+{
+    /// <summary>
+    /// IDs of the managed folders to check. <see langword="null"/> or empty
+    /// means "check every managed folder" (the previous, unscoped behaviour).
+    /// </summary>
+    public IReadOnlyList<int>? ManagedFolderIDs { get; init; }
+}
+
+/// <summary>
 /// The current state of the integrity check run, returned by the
 /// <c>/status</c> endpoint and polled by the dashboard.
 /// </summary>
@@ -25,6 +61,12 @@ public sealed class IntegrityCheckStatus
     /// When the most recent run finished, if it has finished.
     /// </summary>
     public DateTime? CompletedAt { get; init; }
+
+    /// <summary>
+    /// Names of the managed folders the current/most recent run was scoped to.
+    /// Empty means it covered every managed folder.
+    /// </summary>
+    public required IReadOnlyList<string> ScopedFolderNames { get; init; }
 
     /// <summary>
     /// Total number of files queued for the current/most recent run.
@@ -82,6 +124,12 @@ public sealed class PersistedIntegrityCheckResult
     /// When the persisted run finished.
     /// </summary>
     public DateTime? CompletedAt { get; init; }
+
+    /// <summary>
+    /// Names of the managed folders the persisted run was scoped to. Empty
+    /// means it covered every managed folder.
+    /// </summary>
+    public IReadOnlyList<string> ScopedFolderNames { get; init; } = [];
 
     /// <summary>
     /// Total number of files that were queued for the persisted run.
