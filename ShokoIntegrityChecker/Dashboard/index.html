@@ -11,10 +11,8 @@
     <header class="page__header">
       <h1>Integrity Checker</h1>
       <p class="page__subtitle">
-        Re-hashes every file in your managed folders and flags any whose contents no longer match what Shoko has on
-        record. Files with a changed hash are detached from their old release info and re-searched — the same
-        outcome as rescanning a single file, just applied across your whole collection. Most come back unrecognized
-        and need a manual re-match; some get picked back up automatically and need no action either way.
+        Re-hashes your files and flags any whose contents no longer match what Shoko has on record — the same
+        outcome as rescanning a single file, just applied in bulk across the folders you choose below.
       </p>
     </header>
 
@@ -57,15 +55,13 @@
     <section class="panel">
       <h2>Hash changes</h2>
       <p class="panel__hint">
-        Files listed here had a hash change detected and were detached from their old release info, the same as a
-        single-file rescan. <strong>Needs re-matching</strong> means the file is now unrecognized;
-        <strong>Auto re-matched</strong> means Shoko already re-matched it on its own — listed here just so the
-        hash change stays visible.
+        Each row had a hash change and was detached from its release info. <strong>Needs re-matching</strong> —
+        now unrecognized, re-match it manually. <strong>Auto re-matched</strong> — Shoko already picked it back up
+        on its own; shown here just for visibility.
       </p>
       <p class="notice">
-        <strong>Before you re-match a flagged file:</strong> a changed hash usually means the file got corrupted.
-        Less often, Shoko computed a wrong hash. Either way, compare it to the original source — if it checks out,
-        re-match it; if not, you'd just be re-matching a corrupted file.
+        A changed hash usually means the file is corrupted — compare it to the original source before re-matching.
+        Re-matching a corrupted file just re-labels the corruption.
       </p>
       <div id="results-empty" class="empty-state">No hash changes found yet.</div>
       <table id="results-table" class="results-table" hidden>
