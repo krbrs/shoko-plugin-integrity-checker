@@ -45,6 +45,9 @@ jobs:
           VERSION="${TAG#v}"
           SOURCE_REVISION=$(git rev-parse HEAD)
           RELEASED_AT="${{ github.event.release.published_at }}"
+          IS_PRERELEASE="${{ github.event.release.prerelease }}"
+          CHANNEL=$([[ "$IS_PRERELEASE" == "true" ]] && echo "Dev" || echo "Stable")
+          RELEASE_NOTES=$(gh release view "$TAG" --repo "${{ github.repository }}" --json body -q .body)
           CHECKSUM=$(sha256sum "${ZIP_NAME}" | awk '{ print $1 }')
           URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${ZIP_NAME}"
 
@@ -53,6 +56,8 @@ jobs:
             --arg tag "$TAG" \
             --arg source_revision "$SOURCE_REVISION" \
             --arg released_at "$RELEASED_AT" \
+            --arg channel "$CHANNEL" \
+            --arg release_notes "$RELEASE_NOTES" \
             --arg url "$URL" \
             --arg checksum "$CHECKSUM" \
             '{
@@ -60,8 +65,8 @@ jobs:
               tag: $tag,
               source_revision: $source_revision,
               released_at: $released_at,
-              channel: "Stable",
-              release_notes: null,
+              channel: $channel,
+              release_notes: $release_notes,
               archives: [
                 {
                   runtime: "any",
