@@ -40,7 +40,7 @@ public sealed class IntegrityCheckerPlugin : IPlugin, IPluginServiceRegistration
         [
             new()
             {
-                Name = "Integrity Checker",
+                Name = "Dashboard",
                 Url = $"/api/plugin/{PluginConstants.RoutePrefix}/dashboard",
                 CanEmbed = true,
             },
