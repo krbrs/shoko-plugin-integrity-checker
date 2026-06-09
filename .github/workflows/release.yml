@@ -19,7 +19,25 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Build
-        run: dotnet build ShokoIntegrityChecker.sln --configuration Release
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+          SOURCE_REVISION=$(git rev-parse HEAD)
+          RELEASED_AT="${{ github.event.release.published_at }}"
+          IS_PRERELEASE="${{ github.event.release.prerelease }}"
+          CHANNEL=$([[ "$IS_PRERELEASE" == "true" ]] && echo "Dev" || echo "Stable")
+
+          dotnet build ShokoIntegrityChecker.sln --configuration Release \
+            -p:ReleaseTag="$TAG" \
+            -p:SourceRevision="$SOURCE_REVISION" \
+            -p:ReleaseDate="$RELEASED_AT" \
+            -p:ReleaseChannel="$CHANNEL"
+
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "SOURCE_REVISION=$SOURCE_REVISION" >> "$GITHUB_ENV"
+          echo "RELEASED_AT=$RELEASED_AT" >> "$GITHUB_ENV"
+          echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
 
       - name: Package
         run: |
@@ -41,12 +59,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ github.event.release.tag_name }}"
-          VERSION="${TAG#v}"
-          SOURCE_REVISION=$(git rev-parse HEAD)
-          RELEASED_AT="${{ github.event.release.published_at }}"
-          IS_PRERELEASE="${{ github.event.release.prerelease }}"
-          CHANNEL=$([[ "$IS_PRERELEASE" == "true" ]] && echo "Dev" || echo "Stable")
           RELEASE_NOTES=$(gh release view "$TAG" --repo "${{ github.repository }}" --json body -q .body)
           CHECKSUM=$(sha256sum "${ZIP_NAME}" | awk '{ print $1 }')
           URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/${ZIP_NAME}"

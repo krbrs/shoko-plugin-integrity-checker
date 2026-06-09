@@ -12,7 +12,19 @@
     <Title>Shoko Integrity Checker</Title>
     <Authors>krbrs</Authors>
     <Description>Re-hashes files in your Shoko managed folders and flags any whose contents no longer match the stored hash, surfacing them as unrecognized files for re-matching.</Description>
-    <Version>0.1.8</Version>
+    <Version>0.1.9</Version>
+  </PropertyGroup>
+
+  <!--
+    Release metadata injected by CI via -p:Key=Value on `dotnet build`.
+    When building locally these properties are empty and the attributes are omitted,
+    which is fine — the server falls back to safe defaults for local/test builds.
+  -->
+  <PropertyGroup>
+    <ReleaseTag Condition="'$(ReleaseTag)' == ''" />
+    <SourceRevision Condition="'$(SourceRevision)' == ''" />
+    <ReleaseDate Condition="'$(ReleaseDate)' == ''" />
+    <ReleaseChannel Condition="'$(ReleaseChannel)' == ''" />
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,6 +36,31 @@
     -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Shoko.Abstractions" Version="6.0.0-alpha.46" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Static plugin identity — baked into every build, CI and local alike. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>RepositoryUrl</_Parameter1>
+      <_Parameter2>https://github.com/krbrs/shoko-plugin-integrity-checker</_Parameter2>
+    </AssemblyAttribute>
+    <!-- Release metadata — only emitted when CI injects the values. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(ReleaseTag)' != ''">
+      <_Parameter1>ReleaseTag</_Parameter1>
+      <_Parameter2>$(ReleaseTag)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(SourceRevision)' != ''">
+      <_Parameter1>SourceRevision</_Parameter1>
+      <_Parameter2>$(SourceRevision)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(ReleaseDate)' != ''">
+      <_Parameter1>ReleaseDate</_Parameter1>
+      <_Parameter2>$(ReleaseDate)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(ReleaseChannel)' != ''">
+      <_Parameter1>ReleaseChannel</_Parameter1>
+      <_Parameter2>$(ReleaseChannel)</_Parameter2>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>
