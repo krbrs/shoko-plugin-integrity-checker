@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Services;
 using ShokoIntegrityChecker.Models;
@@ -188,16 +189,23 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
         }
     }
 
-    /// <inheritdoc />
-    public IReadOnlyList<ManagedFolderInfo> GetManagedFolders()
-        => [.. _videoService.GetAllManagedFolders()
+    /// <summary>
+    /// Returns the managed folders that are eligible for integrity checking —
+    /// same filter used by <see cref="GetManagedFolders"/> and the scan loop.
+    /// </summary>
+    private IEnumerable<IManagedFolder> GetEligibleManagedFolders()
+        => _videoService.GetAllManagedFolders()
             // Pure drop-source ("import") folders are a transient staging area —
             // files land there only briefly before being relocated into their
             // real home, so re-hashing them is pointless and could race with an
             // in-progress import. Folders that are *also* a destination (i.e.
             // `Both`) are excluded from this filter since they double as a
             // permanent home for files.
-            .Where(folder => folder.DropFolderType != DropFolderType.Source)
+            .Where(folder => folder.DropFolderType != DropFolderType.Source);
+
+    /// <inheritdoc />
+    public IReadOnlyList<ManagedFolderInfo> GetManagedFolders()
+        => [.. GetEligibleManagedFolders()
             .Select(folder => new ManagedFolderInfo { ManagedFolderID = folder.ID, Name = folder.Name, Path = folder.Path })
             .OrderBy(folder => folder.Name, StringComparer.OrdinalIgnoreCase)];
 
@@ -257,6 +265,34 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
         }
     }
 
+    /// <summary>
+    /// Returns <see langword="true"/> if any registered
+    /// <see cref="IManagedFolderIgnoreRule"/> says this file should be skipped.
+    /// Mirrors the filter Shoko applies during import scanning so the integrity
+    /// check doesn't rehash files that Shoko itself treats as invisible.
+    /// </summary>
+    private static bool IsIgnoredByRules(IVideoFile file, IReadOnlyList<IManagedFolderIgnoreRule> rules)
+    {
+        if (rules.Count == 0)
+            return false;
+
+        var fileInfo = new System.IO.FileInfo(file.Path);
+        foreach (var rule in rules)
+        {
+            try
+            {
+                if (rule.ShouldIgnore(file.ManagedFolder, fileInfo))
+                    return true;
+            }
+            catch
+            {
+                // A misbehaving rule shouldn't abort the whole scan — skip it.
+            }
+        }
+
+        return false;
+    }
+
     private async Task RunAsync(CancellationToken cancellationToken)
     {
         try
@@ -273,18 +309,25 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
             lock (_stateLock)
                 scopedFolderIDs = _scopedFolderIDs;
 
-            var folders = _videoService.GetAllManagedFolders().ToList();
+            // Use the same folder filter as the picker — drop-source folders are
+            // excluded both from the UI and from the actual scan, so a "scan
+            // everything" run (null scope) and a run with all folders explicitly
+            // selected produce identical results.
+            var eligibleFolders = GetEligibleManagedFolders().ToList();
             if (scopedFolderIDs is { Count: > 0 })
             {
                 var scopedSet = new HashSet<int>(scopedFolderIDs);
-                folders = [.. folders.Where(folder => scopedSet.Contains(folder.ID))];
+                eligibleFolders = [.. eligibleFolders.Where(folder => scopedSet.Contains(folder.ID))];
             }
+
+            // Snapshot the ignore rules once so we don't re-query them per file.
+            var ignoreRules = _videoService.IgnoreRules;
 
             // Snapshot the file list up-front so the progress total is stable
             // for the duration of the run.
-            var files = folders
-                .SelectMany(folder => _videoService.GetVideoFilesInManagedFolder(folder))
-                .Where(file => file.IsAvailable)
+            var files = eligibleFolders
+                .SelectMany(folder => _videoService.GetVideoFilesInManagedFolder(folder)
+                    .Where(file => file.IsAvailable && !IsIgnoredByRules(file, ignoreRules)))
                 .ToList();
 
             lock (_stateLock)
@@ -295,7 +338,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                 _logger.LogInformation(
                     "Starting integrity check across {FileCount} file(s) in {FolderCount} selected managed folder(s)",
                     files.Count,
-                    folders.Count);
+                    eligibleFolders.Count);
             }
             else
             {
