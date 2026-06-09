@@ -14,6 +14,22 @@
   "thumbnail": null,
   "releases": [
     {
+      "version": "0.1.8",
+      "tag": "v0.1.8",
+      "source_revision": "4bccfcf2c19c42d151ea8114538b4d3c34b6e6dc",
+      "released_at": "2026-06-09T07:27:38Z",
+      "channel": "Dev",
+      "release_notes": "## What's fixed\n\n- **Drop-source folders are now excluded from \"scan everything\" runs.** The filter that hides them from the picker wasn't applied to the actual scan loop, so an unscoped run always included pure drop-source folders regardless of the selection.\n- **Files matched by Shoko's ignore rules are now skipped.** The scan now evaluates the same `IManagedFolderIgnoreRule` list that Shoko's import scanner uses, so files Shoko treats as invisible aren't rehashed.",
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/krbrs/shoko-plugin-integrity-checker/releases/download/v0.1.8/ShokoIntegrityChecker-v0.1.8-any.zip",
+          "checksum": "e501d913f623faecab705d9f3da433d7bfcd921b1eb547bb4b0918e7aa28ac8e"
+        }
+      ]
+    },
+    {
       "version": "0.1.7",
       "tag": "v0.1.7",
       "source_revision": "7e51e835c3f346f775fb6875787c976bfe0e57bc",
