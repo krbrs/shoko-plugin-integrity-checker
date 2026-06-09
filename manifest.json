@@ -14,6 +14,22 @@
   "thumbnail": null,
   "releases": [
     {
+      "version": "0.1.9",
+      "tag": "v0.1.9",
+      "source_revision": "07f45d9a8ef5b72e2babe07304be9278dea78626",
+      "released_at": "2026-06-09T08:36:20Z",
+      "channel": "Dev",
+      "release_notes": "## What's fixed\n\n- **Plugin channel, source revision, and release date are now correctly baked into the DLL** by the CI build. Previously the server derived `ReleaseChannel` from the version's 4th component (absent → `Stable`), so the DLL disagreed with `manifest.json` which said `Dev`. The plugin manager couldn't resolve installed/update status correctly as a result. The repository URL is also now embedded directly so the plugin manager can show it without going through the manifest.",
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/krbrs/shoko-plugin-integrity-checker/releases/download/v0.1.9/ShokoIntegrityChecker-v0.1.9-any.zip",
+          "checksum": "580aac62f5557fd1ab33e8a2fdf5c62159fc49f6628d1e42a62c51bbd486e89b"
+        }
+      ]
+    },
+    {
       "version": "0.1.8",
       "tag": "v0.1.8",
       "source_revision": "4bccfcf2c19c42d151ea8114538b4d3c34b6e6dc",
