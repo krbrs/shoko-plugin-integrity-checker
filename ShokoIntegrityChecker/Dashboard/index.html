@@ -37,6 +37,7 @@
         <div class="controls">
           <button id="run-btn" class="btn btn--primary" type="button">Run integrity check</button>
           <button id="cancel-btn" class="btn btn--ghost" type="button" hidden>Cancel</button>
+          <a id="download-btn" class="btn btn--ghost" href="../export" download hidden>Download JSON</a>
         </div>
         <div id="status-pill" class="status-pill status-pill--idle">Idle</div>
       </div>
@@ -58,28 +59,33 @@
     <section class="panel">
       <h2>Hash changes</h2>
       <p class="panel__hint">
-        Each row had a hash change and was detached from its release info. <strong>Needs re-matching</strong> —
-        now unrecognized, re-match it manually. <strong>Auto re-matched</strong> — Shoko already picked it back up
-        on its own; shown here just for visibility.
+        Each row had a hash change and was detached from its release info. <strong>Needs verification</strong> —
+        now unrecognized, compare it to the source before deciding whether to re-match it. <strong>Updated match</strong> —
+        Shoko already picked it back up on its own; shown here just for visibility.
       </p>
       <p class="notice">
         A changed hash usually means the file is corrupted — compare it to the original source before re-matching.
         Re-matching a corrupted file just re-labels the corruption.
       </p>
       <div id="results-empty" class="empty-state">No hash changes found yet.</div>
-      <table id="results-table" class="results-table" hidden>
-        <thead>
-          <tr>
-            <th>File</th>
-            <th>Managed folder</th>
-            <th>Previous hash</th>
-            <th>New hash</th>
-            <th>Status</th>
-            <th>Detected</th>
-          </tr>
-        </thead>
-        <tbody id="results-body"></tbody>
-      </table>
+      <div id="results-panel" class="results-panel" hidden>
+        <div id="results-meta" class="results-meta"></div>
+        <div id="results-scroll" class="results-scroll">
+          <table id="results-table" class="results-table">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Managed folder</th>
+                <th>Previous hash</th>
+                <th>New hash</th>
+                <th>Status</th>
+                <th>Detected</th>
+              </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
   </main>
 

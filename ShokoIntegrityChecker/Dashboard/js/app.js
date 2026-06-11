@@ -6,10 +6,12 @@
   // iframe by the WebUI.
   const API_BASE = "../";
   const POLL_INTERVAL_MS = 1500;
+  const RESULTS_BATCH_SIZE = 100;
 
   const els = {
     runBtn: document.getElementById("run-btn"),
     cancelBtn: document.getElementById("cancel-btn"),
+    downloadBtn: document.getElementById("download-btn"),
     scopeToggleBtn: document.getElementById("scope-toggle-btn"),
     foldersLoading: document.getElementById("folders-loading"),
     foldersLoadingText: document.getElementById("folders-loading-text"),
@@ -22,6 +24,9 @@
     summary: document.getElementById("summary"),
     errorBanner: document.getElementById("error-banner"),
     resultsEmpty: document.getElementById("results-empty"),
+    resultsPanel: document.getElementById("results-panel"),
+    resultsMeta: document.getElementById("results-meta"),
+    resultsScroll: document.getElementById("results-scroll"),
     resultsTable: document.getElementById("results-table"),
     resultsBody: document.getElementById("results-body"),
   };
@@ -29,6 +34,20 @@
   let pollHandle = null;
   let folders = [];
   const selectedFolderIDs = new Set();
+  let renderedResultsLimit = RESULTS_BATCH_SIZE;
+  let lastResultsSignature = "";
+  let lastRenderedStatus = null;
+
+  function hasSavedState(status) {
+    return Boolean(
+      status.startedAt ||
+      status.completedAt ||
+      (status.totalFiles || 0) > 0 ||
+      (status.processedFiles || 0) > 0 ||
+      (status.mismatches || []).length > 0 ||
+      status.lastError,
+    );
+  }
 
   async function apiPost(path, body) {
     const init = { method: "POST" };
@@ -170,7 +189,7 @@
   }
 
   function renderProgress(status) {
-    if (!status.isRunning && !status.completedAt) {
+    if (!status.isRunning && !hasSavedState(status)) {
       els.progressWrap.hidden = true;
       return;
     }
@@ -185,15 +204,15 @@
   }
 
   function renderSummary(status) {
-    if (status.isRunning || !status.completedAt) {
+    if (status.isRunning || !hasSavedState(status)) {
       els.summary.hidden = true;
       return;
     }
 
     const started = status.startedAt ? new Date(status.startedAt) : null;
-    const completed = new Date(status.completedAt);
+    const completed = status.completedAt ? new Date(status.completedAt) : null;
     let durationText = "";
-    if (started) {
+    if (started && completed) {
       const seconds = Math.max(0, Math.round((completed - started) / 1000));
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
@@ -201,11 +220,11 @@
     }
 
     const mismatches = status.mismatches || [];
-    const needsRematch = mismatches.filter((issue) => !issue.isRecognized).length;
-    const autoRematched = mismatches.length - needsRematch;
+    const needsVerification = mismatches.filter((issue) => !issue.isRecognized).length;
+    const updatedMatches = mismatches.length - needsVerification;
     let changesText = `${mismatches.length} hash change(s)`;
     if (mismatches.length > 0) {
-      changesText += ` (${needsRematch} need re-matching, ${autoRematched} auto re-matched)`;
+      changesText += ` (${needsVerification} need verification, ${updatedMatches} updated match)`;
     }
 
     const scopedNames = status.scopedFolderNames || [];
@@ -213,11 +232,26 @@
       ? ` Scoped to: ${scopedNames.join(", ")}.`
       : "";
 
+    let intro;
+    if (status.wasCompleted && completed) {
+      intro = `Last run finished ${completed.toLocaleString()}${durationText}: `;
+    } else if (completed) {
+      intro = `Last run stopped ${completed.toLocaleString()}${durationText}: `;
+    } else if (started) {
+      intro = `Last saved checkpoint from ${started.toLocaleString()}: `;
+    } else {
+      intro = "Last saved checkpoint: ";
+    }
+
     els.summary.hidden = false;
     els.summary.textContent =
-      `Last run finished ${completed.toLocaleString()}${durationText}: ` +
+      intro +
       `${status.processedFiles} checked, ${changesText}, ` +
       `${status.skippedFiles} skipped (unavailable on disk).${scopeText}`;
+  }
+
+  function updateDownloadButton(status) {
+    els.downloadBtn.hidden = !hasSavedState(status);
   }
 
   function renderError(status) {
@@ -232,21 +266,44 @@
 
   function renderResults(status) {
     const mismatches = status.mismatches || [];
+    const resultsSignature = mismatches
+      .map((issue) => `${issue.fileID}:${issue.newHash}:${issue.detectedAt}`)
+      .join("|");
+
+    if (resultsSignature !== lastResultsSignature) {
+      renderedResultsLimit = Math.min(
+        Math.max(renderedResultsLimit, RESULTS_BATCH_SIZE),
+        mismatches.length || RESULTS_BATCH_SIZE,
+      );
+      lastResultsSignature = resultsSignature;
+    }
+
+    lastRenderedStatus = status;
+
     if (mismatches.length === 0) {
       els.resultsEmpty.hidden = false;
-      els.resultsTable.hidden = true;
+      els.resultsPanel.hidden = true;
       els.resultsBody.innerHTML = "";
+      els.resultsMeta.textContent = "";
+      els.resultsScroll.scrollTop = 0;
       return;
     }
 
     els.resultsEmpty.hidden = true;
-    els.resultsTable.hidden = false;
+    els.resultsPanel.hidden = false;
+    const visibleCount = Math.min(renderedResultsLimit, mismatches.length);
+    const hasMore = visibleCount < mismatches.length;
+    els.resultsMeta.textContent = hasMore
+      ? `Showing ${visibleCount.toLocaleString()} of ${mismatches.length.toLocaleString()} hash change(s). Scroll to load more.`
+      : `Showing all ${mismatches.length.toLocaleString()} hash change(s).`;
+
     els.resultsBody.innerHTML = mismatches
+      .slice(0, visibleCount)
       .map((issue) => {
         const detected = new Date(issue.detectedAt);
         const badge = issue.isRecognized
-          ? `<span class="badge badge--ok">Auto re-matched</span>`
-          : `<span class="badge badge--attention">Needs re-matching</span>`;
+          ? `<span class="badge badge--ok">Updated match</span>`
+          : `<span class="badge badge--attention">Needs verification</span>`;
         return `
           <tr>
             <td>
@@ -264,6 +321,19 @@
       .join("");
   }
 
+  function maybeLoadMoreResults() {
+    if (!lastRenderedStatus) return;
+
+    const mismatches = lastRenderedStatus.mismatches || [];
+    if (renderedResultsLimit >= mismatches.length) return;
+
+    const remaining = els.resultsScroll.scrollHeight - els.resultsScroll.scrollTop - els.resultsScroll.clientHeight;
+    if (remaining > 160) return;
+
+    renderedResultsLimit = Math.min(renderedResultsLimit + RESULTS_BATCH_SIZE, mismatches.length);
+    renderResults(lastRenderedStatus);
+  }
+
   function escapeHtml(value) {
     const div = document.createElement("div");
     div.textContent = value ?? "";
@@ -276,6 +346,7 @@
     renderSummary(status);
     renderError(status);
     renderResults(status);
+    updateDownloadButton(status);
 
     els.runBtn.disabled = status.isRunning;
     els.cancelBtn.hidden = !status.isRunning;
@@ -356,6 +427,8 @@
       console.error(err);
     }
   });
+
+  els.resultsScroll.addEventListener("scroll", maybeLoadMoreResults);
 
   // Fetch the current status *before* loading the folder picker, so that if a
   // scoped run is already in progress (e.g. the dashboard was just reloaded),

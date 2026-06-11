@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Services;
 using ShokoIntegrityChecker.Models;
@@ -14,6 +15,9 @@ namespace ShokoIntegrityChecker.Services;
 public sealed class IntegrityCheckService : IIntegrityCheckService
 {
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
+    private static readonly TimeSpan PersistInterval = TimeSpan.FromSeconds(5);
+    private const int PersistEveryProcessedFiles = 25;
+    private const int QueueSubmissionWindow = 16;
 
     private readonly IVideoService _videoService;
 
@@ -24,8 +28,8 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
     private readonly ILogger<IntegrityCheckService> _logger;
 
     /// <summary>
-    /// Where the most recent run's results are persisted as JSON, so they
-    /// survive a server restart or plugin reload. Lives at
+    /// Where the most recent run's results and in-progress checkpoints are
+    /// persisted as JSON, so they survive a server restart or plugin reload. Lives at
     /// <c>{DataPath}/configuration/{PluginID}/results.json</c> — the same
     /// per-plugin directory convention the host uses (and purges on uninstall).
     /// </summary>
@@ -34,6 +38,8 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
     private readonly Lock _stateLock = new();
 
     private readonly ConcurrentBag<IntegrityCheckIssue> _mismatches = [];
+
+    private readonly ConcurrentDictionary<int, PendingHashWork> _pendingHashOperations = [];
 
     private CancellationTokenSource? _cancellationTokenSource;
 
@@ -44,6 +50,8 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
     private DateTime? _startedAt;
 
     private DateTime? _completedAt;
+
+    private bool _wasCompleted;
 
     private IReadOnlyList<string> _scopedFolderNames = [];
 
@@ -58,6 +66,12 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
     private string? _currentFile;
 
     private string? _lastError;
+
+    private DateTime _lastPersistedAtUtc = DateTime.MinValue;
+
+    private int _lastPersistedProcessedFiles = -1;
+
+    private int _lastPersistedMismatchCount = -1;
 
     /// <summary>
     /// Initializes a new instance of <see cref="IntegrityCheckService"/>.
@@ -78,6 +92,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
         _hashingService = hashingService;
         _systemService = systemService;
         _logger = logger;
+        _hashingService.VideoFileHashed += OnVideoFileHashed;
 
         var pluginDataDirectory = Path.Combine(applicationPaths.ConfigurationsPath, IntegrityCheckerPlugin.StaticID.ToString());
         _resultsFilePath = Path.Combine(pluginDataDirectory, "results.json");
@@ -106,6 +121,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
 
             lock (_stateLock)
             {
+                _wasCompleted = persisted.WasCompleted;
                 _startedAt = persisted.StartedAt;
                 _completedAt = persisted.CompletedAt;
                 _scopedFolderNames = persisted.ScopedFolderNames;
@@ -132,34 +148,60 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
     }
 
     /// <summary>
-    /// Writes the current run's results to disk so they survive a restart or
-    /// plugin reload. Writes to a temporary file first and then replaces the
-    /// real one, so a crash mid-write can't corrupt the persisted results.
+    /// Writes the current run's results/checkpoint to disk so they survive a
+    /// restart or plugin reload. Writes to a temporary file first and then
+    /// replaces the real one, so a crash mid-write can't corrupt the
+    /// persisted results.
     /// </summary>
-    private void PersistResult()
+    private PersistedIntegrityCheckResult CreateSnapshot()
+    {
+        lock (_stateLock)
+        {
+            return new()
+            {
+                WasCompleted = _wasCompleted,
+                StartedAt = _startedAt,
+                CompletedAt = _completedAt,
+                ScopedFolderNames = _scopedFolderNames,
+                TotalFiles = _totalFiles,
+                ProcessedFiles = _processedFiles,
+                SkippedFiles = _skippedFiles,
+                Mismatches = [.. _mismatches.OrderByDescending(issue => issue.DetectedAt)],
+                LastError = _lastError,
+            };
+        }
+    }
+
+    private void PersistResult(bool force)
     {
         try
         {
-            PersistedIntegrityCheckResult snapshot;
-            lock (_stateLock)
+            var snapshot = CreateSnapshot();
+            var mismatchCount = snapshot.Mismatches.Count;
+            var nowUtc = DateTime.UtcNow;
+
+            if (!force)
             {
-                snapshot = new()
-                {
-                    StartedAt = _startedAt,
-                    CompletedAt = _completedAt,
-                    ScopedFolderNames = _scopedFolderNames,
-                    TotalFiles = _totalFiles,
-                    ProcessedFiles = _processedFiles,
-                    SkippedFiles = _skippedFiles,
-                    Mismatches = [.. _mismatches.OrderByDescending(issue => issue.DetectedAt)],
-                    LastError = _lastError,
-                };
+                var nothingChanged = snapshot.ProcessedFiles == _lastPersistedProcessedFiles
+                    && mismatchCount == _lastPersistedMismatchCount
+                    && snapshot.WasCompleted == false;
+                var intervalNotElapsed = nowUtc - _lastPersistedAtUtc < PersistInterval;
+                var processedThresholdNotReached =
+                    snapshot.ProcessedFiles < _lastPersistedProcessedFiles + PersistEveryProcessedFiles;
+                var mismatchCountUnchanged = mismatchCount == _lastPersistedMismatchCount;
+
+                if (nothingChanged || (intervalNotElapsed && processedThresholdNotReached && mismatchCountUnchanged))
+                    return;
             }
 
             var json = JsonSerializer.Serialize(snapshot, SerializerOptions);
             var tempPath = _resultsFilePath + ".tmp";
             File.WriteAllText(tempPath, json);
             File.Move(tempPath, _resultsFilePath, overwrite: true);
+
+            _lastPersistedAtUtc = nowUtc;
+            _lastPersistedProcessedFiles = snapshot.ProcessedFiles;
+            _lastPersistedMismatchCount = mismatchCount;
         }
         catch (Exception ex)
         {
@@ -176,6 +218,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
             {
                 IsRunning = _isRunning,
                 IsCancellationRequested = _cancellationTokenSource?.IsCancellationRequested ?? false,
+                WasCompleted = _wasCompleted,
                 StartedAt = _startedAt,
                 CompletedAt = _completedAt,
                 ScopedFolderNames = _scopedFolderNames,
@@ -187,6 +230,16 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                 LastError = _lastError,
             };
         }
+    }
+
+    /// <inheritdoc />
+    public PersistedIntegrityCheckResult GetExport()
+        => CreateSnapshot();
+
+    private void OnVideoFileHashed(object? sender, VideoFileHashedEventArgs args)
+    {
+        if (_pendingHashOperations.TryRemove(args.File.ID, out var pending))
+            pending.Completion.TrySetResult(args);
     }
 
     /// <summary>
@@ -234,6 +287,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                 return false;
 
             _isRunning = true;
+            _wasCompleted = false;
             _startedAt = DateTime.Now;
             _completedAt = null;
             _scopedFolderIDs = scopedIDs;
@@ -295,6 +349,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
 
     private async Task RunAsync(CancellationToken cancellationToken)
     {
+        var completedNormally = false;
         try
         {
             if (!_systemService.IsStarted)
@@ -333,6 +388,8 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
             lock (_stateLock)
                 _totalFiles = files.Count;
 
+            PersistResult(force: true);
+
             if (scopedFolderIDs is { Count: > 0 })
             {
                 _logger.LogInformation(
@@ -345,45 +402,74 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                 _logger.LogInformation("Starting integrity check across {FileCount} file(s)", files.Count);
             }
 
-            foreach (var file in files)
+            var pendingByFileID = new Dictionary<int, PendingHashWork>();
+            var remainingFiles = new Queue<IVideoFile>(files);
+
+            while (remainingFiles.Count > 0 || pendingByFileID.Count > 0)
             {
-                if (cancellationToken.IsCancellationRequested)
+                while (!cancellationToken.IsCancellationRequested
+                    && remainingFiles.Count > 0
+                    && pendingByFileID.Count < QueueSubmissionWindow)
                 {
-                    _logger.LogInformation("Integrity check cancelled after {Processed}/{Total} file(s)", _processedFiles, _totalFiles);
-                    break;
+                    var file = remainingFiles.Dequeue();
+
+                    lock (_stateLock)
+                        _currentFile = file.FileName;
+
+                    if (!file.IsAvailable)
+                    {
+                        lock (_stateLock)
+                            _skippedFiles++;
+                        continue;
+                    }
+
+                    var previousVideo = file.Video;
+                    var pending = new PendingHashWork(file, previousVideo.ID, previousVideo.ED2K);
+                    _pendingHashOperations[file.ID] = pending;
+
+                    try
+                    {
+                        // Use Shoko's queue instead of hashing inline so the server can
+                        // schedule the actual hashing work according to its own policy.
+                        // The bounded submission window keeps that queue fed without
+                        // making cancellation meaningless by enqueueing the whole library
+                        // up front.
+                        await _hashingService.ScheduleGetHashesForFile(
+                            file,
+                            useExistingHashes: false,
+                            skipFindRelease: false,
+                            skipMylist: false,
+                            prioritize: false);
+                        pendingByFileID[file.ID] = pending;
+                    }
+                    catch (Exception ex)
+                    {
+                        _pendingHashOperations.TryRemove(file.ID, out _);
+                        _logger.LogError(ex, "Integrity check: failed to queue re-hash for \"{FileName}\"", file.FileName);
+                        lock (_stateLock)
+                            _processedFiles++;
+                        PersistResult(force: false);
+                    }
                 }
 
-                lock (_stateLock)
-                    _currentFile = file.FileName;
-
-                if (!file.IsAvailable)
+                if (pendingByFileID.Count == 0)
                 {
-                    lock (_stateLock)
-                        _skippedFiles++;
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+
                     continue;
                 }
 
-                var previousVideo = file.Video;
-                var previousVideoId = previousVideo.ID;
-                var previousHash = previousVideo.ED2K;
-
+                Task<VideoFileHashedEventArgs> completedTask;
                 try
                 {
-                    // Mirrors the manual "Rehash" action (useExistingHashes: false
-                    // forces recomputation), just run in bulk. If the contents
-                    // changed, the hashing service itself detaches the file from
-                    // its old release info and spins up a new video record,
-                    // leaving the file unrecognized for re-matching — exactly
-                    // what a single-file rescan does.
-                    var result = await _hashingService.GetHashesForFile(
-                        file,
-                        useExistingHashes: false,
-                        skipFindRelease: false,
-                        skipMylist: false,
-                        cancellationToken: cancellationToken);
+                    completedTask = await Task.WhenAny(pendingByFileID.Values.Select(pending => pending.Completion.Task));
+                    var hashed = await completedTask;
+                    var pending = pendingByFileID.Values.First(candidate => candidate.Completion.Task == completedTask);
+                    pendingByFileID.Remove(pending.File.ID);
 
-                    var newHash = result.Video.ED2K;
-                    if (result.IsNewVideo || !string.Equals(previousHash, newHash, StringComparison.OrdinalIgnoreCase))
+                    var newHash = hashed.Video.ED2K;
+                    if (hashed.IsNewVideo || !string.Equals(pending.PreviousHash, newHash, StringComparison.OrdinalIgnoreCase))
                     {
                         // A video with release info has already been picked back up by
                         // Shoko's release search under its corrected hash — recognized,
@@ -392,18 +478,18 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                         // rescan. We still record both so the hash change itself stays
                         // visible (it's useful to know a stored hash was wrong even when
                         // Shoko fixed the match on its own), but the dashboard surfaces
-                        // them differently so "auto re-matched" files don't read as if
+                        // them differently so "updated match" files don't read as if
                         // they need attention.
-                        var isRecognized = result.Video.ReleaseInfo is not null;
+                        var isRecognized = hashed.Video.ReleaseInfo is not null;
                         var issue = new IntegrityCheckIssue
                         {
-                            PreviousVideoID = previousVideoId,
-                            NewVideoID = result.Video.ID,
-                            FileID = file.ID,
-                            FileName = file.FileName,
-                            RelativePath = file.RelativePath,
-                            ManagedFolderName = file.ManagedFolder.Name,
-                            PreviousHash = previousHash,
+                            PreviousVideoID = pending.PreviousVideoID,
+                            NewVideoID = hashed.Video.ID,
+                            FileID = hashed.File.ID,
+                            FileName = hashed.File.FileName,
+                            RelativePath = hashed.RelativePath,
+                            ManagedFolderName = hashed.ManagedFolder.Name,
+                            PreviousHash = pending.PreviousHash,
                             NewHash = newHash,
                             IsRecognized = isRecognized,
                             DetectedAt = DateTime.Now,
@@ -415,9 +501,9 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                             _logger.LogInformation(
                                 "Integrity check: hash changed for \"{FileName}\" in \"{ManagedFolder}\" (was {OldHash}, now {NewHash}) "
                                 + "but it was automatically re-matched to a release — no action needed",
-                                file.FileName,
-                                file.ManagedFolder.Name,
-                                previousHash,
+                                hashed.File.FileName,
+                                hashed.ManagedFolder.Name,
+                                pending.PreviousHash,
                                 newHash);
                         }
                         else
@@ -425,25 +511,30 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                             _logger.LogWarning(
                                 "Integrity check: hash mismatch for \"{FileName}\" in \"{ManagedFolder}\" — was {OldHash}, now {NewHash}, "
                                 + "and the file is now unrecognized",
-                                file.FileName,
-                                file.ManagedFolder.Name,
-                                previousHash,
+                                hashed.File.FileName,
+                                hashed.ManagedFolder.Name,
+                                pending.PreviousHash,
                                 newHash);
                         }
                     }
+
+                    lock (_stateLock)
+                        _processedFiles++;
                 }
                 catch (OperationCanceledException)
                 {
                     break;
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Integrity check: failed to re-hash \"{FileName}\"", file.FileName);
-                }
 
-                lock (_stateLock)
-                    _processedFiles++;
+                PersistResult(force: false);
             }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogInformation("Integrity check cancelled after {Processed}/{Total} file(s)", _processedFiles, _totalFiles);
+            }
+
+            completedNormally = !cancellationToken.IsCancellationRequested;
         }
         catch (Exception ex)
         {
@@ -453,9 +544,16 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
         }
         finally
         {
+            foreach (var pending in _pendingHashOperations.ToArray())
+            {
+                if (_pendingHashOperations.TryRemove(pending.Key, out var removed))
+                    removed.Completion.TrySetCanceled();
+            }
+
             lock (_stateLock)
             {
                 _isRunning = false;
+                _wasCompleted = completedNormally;
                 _completedAt = DateTime.Now;
                 _currentFile = null;
             }
@@ -469,7 +567,26 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
 
             // Persist so the dashboard still has these results after a
             // restart or plugin reload, instead of resetting to "no run yet".
-            PersistResult();
+            PersistResult(force: true);
         }
+    }
+
+    private sealed class PendingHashWork
+    {
+        public PendingHashWork(IVideoFile file, int previousVideoID, string previousHash)
+        {
+            File = file;
+            PreviousVideoID = previousVideoID;
+            PreviousHash = previousHash;
+            Completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
+        public IVideoFile File { get; }
+
+        public int PreviousVideoID { get; }
+
+        public string PreviousHash { get; }
+
+        public TaskCompletionSource<VideoFileHashedEventArgs> Completion { get; }
     }
 }

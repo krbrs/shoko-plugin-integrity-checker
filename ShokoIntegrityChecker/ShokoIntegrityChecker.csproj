@@ -11,8 +11,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Title>Shoko Integrity Checker</Title>
     <Authors>krbrs</Authors>
-    <Description>Re-hashes files in your Shoko managed folders and flags any whose contents no longer match the stored hash, surfacing them as unrecognized files for re-matching.</Description>
-    <Version>0.1.9</Version>
+    <Description>Re-hashes files in your Shoko managed folders and flags any whose contents no longer match the stored hash, surfacing them for verification and updated matching.</Description>
+    <Version>0.1.10</Version>
   </PropertyGroup>
 
   <!--

@@ -37,18 +37,20 @@ ShokoIntegrityChecker/
    left out of the picker entirely — they're a transient staging area files pass through on their way to a real
    home, so re-hashing them is pointless and could race with an in-progress import.
 4. `IntegrityCheckService` snapshots every available file across the selected managed folders (`IVideoService`),
-   then calls `IVideoHashingService.GetHashesForFile(file, useExistingHashes: false, ...)` for each one — the same
-   force-rehash path the built-in "Rehash" file action uses. If the recomputed hash differs (or a new video record
-   was spun up), it's recorded as a hash change; Shoko's hashing service has already detached the file from its old
-   release info. Whether the new video record ends up matched to a release (`IVideo.ReleaseInfo is not null`)
-   determines how the dashboard labels it: **Auto re-matched** (Shoko's release search picked it back up under the
-   corrected hash, no action needed) or **Needs re-matching** (genuinely unrecognized now, same as after a
-   single-file rescan).
-5. The dashboard polls `/status` every 1.5s while a run is active and renders progress plus a results table.
-6. After each run, `IntegrityCheckService` writes its results to `results.json` under the plugin's per-plugin
-   configuration directory (`{Shoko data dir}/configuration/{plugin GUID}/`, the same location the host purges on
-   uninstall) and reloads it on startup — so results survive a server restart or plugin reload instead of resetting
-   to "no run yet".
+   then enqueues each file through `IVideoHashingService.ScheduleGetHashesForFile(..., useExistingHashes: false, ...)`
+   so Shoko's own queue processor performs the re-hash work using the same force-rehash path as the built-in
+   "Rehash" action. The plugin listens for `VideoFileHashed` completions, compares the freshly computed hash to the
+   previous one, and records a hash change if they differ (or if a new video record was spun up); by then Shoko's
+   hashing service has already detached the file from its old release info. Whether the new video record ends up
+   matched to a release (`IVideo.ReleaseInfo is not null`) determines how the dashboard labels it: **Updated match**
+   (Shoko's release search picked it back up under the corrected hash, no action needed) or **Needs verification**
+   (genuinely unrecognized now, same as after a single-file rescan, so compare it to the source before re-matching).
+5. The dashboard polls `/status` every 1.5s while a run is active and renders progress plus a results table. Users can
+   also download the current/most recent snapshot as JSON straight from the WebUI.
+6. `IntegrityCheckService` checkpoints its current state to `results.json` under the plugin's per-plugin configuration
+   directory (`{Shoko data dir}/configuration/{plugin GUID}/`, the same location the host purges on uninstall) while a
+   run is in progress, then writes a final completed snapshot when it ends. That way long runs survive a server restart
+   or plugin reload instead of resetting to "no run yet".
 
 > [!NOTE]
 > A changed hash usually means the file got corrupted. Less often, Shoko computed a wrong hash. Either way, compare

@@ -338,6 +338,28 @@ body {
   margin-top: 8px;
 }
 
+.results-panel {
+  margin-top: 8px;
+}
+
+.results-meta {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.results-scroll {
+  max-height: 640px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.results-scroll .results-table {
+  margin-top: 0;
+}
+
 .results-table th,
 .results-table td {
   text-align: left;
@@ -352,6 +374,10 @@ body {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
 }
 
 .results-table td.mono {

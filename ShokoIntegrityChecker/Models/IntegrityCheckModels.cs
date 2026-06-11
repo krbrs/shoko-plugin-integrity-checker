@@ -59,6 +59,12 @@ public sealed class IntegrityCheckStatus
     public required bool IsCancellationRequested { get; init; }
 
     /// <summary>
+    /// Whether the current/most recent run reached a normal end instead of
+    /// being restored from an in-progress checkpoint or stopping early.
+    /// </summary>
+    public required bool WasCompleted { get; init; }
+
+    /// <summary>
     /// When the current (or most recent) run started, if any.
     /// </summary>
     public DateTime? StartedAt { get; init; }
@@ -121,6 +127,12 @@ public sealed class IntegrityCheckStatus
 /// </summary>
 public sealed class PersistedIntegrityCheckResult
 {
+    /// <summary>
+    /// Whether the persisted run reached a normal end instead of being an
+    /// in-progress or interrupted checkpoint.
+    /// </summary>
+    public bool WasCompleted { get; init; }
+
     /// <summary>
     /// When the persisted run started.
     /// </summary>

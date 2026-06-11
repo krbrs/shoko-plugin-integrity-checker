@@ -67,6 +67,25 @@ public sealed class IntegrityCheckController : ControllerBase
         => Ok(_service.GetManagedFolders());
 
     /// <summary>
+    /// Downloads the current/most recent run snapshot as JSON so users can
+    /// archive or inspect the findings outside the WebUI.
+    /// </summary>
+    [HttpGet("export")]
+    public ActionResult Export()
+    {
+        var snapshot = _service.GetExport();
+        var suffix = snapshot.WasCompleted ? "completed" : "checkpoint";
+        var timestamp = snapshot.CompletedAt ?? snapshot.StartedAt ?? DateTime.Now;
+        var fileName = $"integrity-check-{timestamp:yyyyMMdd-HHmmss}-{suffix}.json";
+        var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(snapshot, new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true,
+        });
+
+        return File(bytes, "application/json", fileName);
+    }
+
+    /// <summary>
     /// Starts a new integrity check run, optionally scoped to a subset of
     /// managed folders (every folder is checked if none are specified). The
     /// run continues in the background; poll <c>/status</c> for progress.

@@ -15,6 +15,11 @@ public interface IIntegrityCheckService
     IntegrityCheckStatus GetStatus();
 
     /// <summary>
+    /// Gets a serializable snapshot of the current/most recent run for JSON export.
+    /// </summary>
+    PersistedIntegrityCheckResult GetExport();
+
+    /// <summary>
     /// Lists every managed folder the check could be scoped to, for the
     /// dashboard's folder picker.
     /// </summary>
