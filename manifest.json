@@ -14,6 +14,22 @@
   "thumbnail": null,
   "releases": [
     {
+      "version": "0.1.10",
+      "tag": "v0.1.10",
+      "source_revision": "574bbead593212c7ee071220769f7b7d62737cbc",
+      "released_at": "2026-06-11T10:04:52Z",
+      "channel": "Dev",
+      "release_notes": "## What's changed\n\n- **Integrity check runs now use Shoko's own hashing queue** instead of issuing inline one-by-one rehashes. The plugin feeds the server queue through a bounded submission window and listens for `VideoFileHashed` completions, so it cooperates with Shoko's scheduling model while keeping cancellation practical.\n- **Results are now checkpointed during a run instead of only at the end.** The latest state is written to `results.json` at sensible intervals and on new findings, so a long run survives a restart or plugin reload with far less data loss.\n- **The latest snapshot can now be downloaded as JSON from the WebUI.** This makes it easier to archive or inspect the findings outside the dashboard.\n- **Dashboard result labels were clarified.** `Needs re-matching` is now `Needs verification`, and `Auto re-matched` is now `Updated match`.\n- **Large result sets no longer dump every row into the DOM at once.** The dashboard now renders the findings incrementally inside a scrollable pane, which keeps the browser responsive when a run produces many items.",
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/krbrs/shoko-plugin-integrity-checker/releases/download/v0.1.10/ShokoIntegrityChecker-v0.1.10-any.zip",
+          "checksum": "2bd2bc0677cf0c00a3effa8e73f9a2f58b392688f465132d6223f17ebc87e3cd"
+        }
+      ]
+    },
+    {
       "version": "0.1.9",
       "tag": "v0.1.9",
       "source_revision": "07f45d9a8ef5b72e2babe07304be9278dea78626",
