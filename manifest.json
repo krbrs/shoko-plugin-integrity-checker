@@ -14,6 +14,22 @@
   "thumbnail": null,
   "releases": [
     {
+      "version": "0.1.11",
+      "tag": "v0.1.11",
+      "source_revision": "89574883554a17436fc007ed186e69bcd006b1e7",
+      "released_at": "2026-10-03T18:38:27Z",
+      "channel": "Dev",
+      "release_notes": "Compatibility update for Shoko.Abstractions 6.0.0-alpha.98.\n\n- Updated video ID access and hashing queue calls for the current abstractions API.\n- Embedded the plug-in ID, name, overview, and tags in the assembly metadata.",
+      "archives": [
+        {
+          "runtime": "any",
+          "abstraction": "6.0.0",
+          "url": "https://github.com/krbrs/shoko-plugin-integrity-checker/releases/download/v0.1.11/ShokoIntegrityChecker-v0.1.11-any.zip",
+          "checksum": "01ceac1688847f1cc126ea6e2c2c07f7f3a32123e30cb8a59a25ad489c6195e9"
+        }
+      ]
+    },
+    {
       "version": "0.1.10",
       "tag": "v0.1.10",
       "source_revision": "574bbead593212c7ee071220769f7b7d62737cbc",
