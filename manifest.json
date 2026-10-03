@@ -19,7 +19,7 @@
       "source_revision": "89574883554a17436fc007ed186e69bcd006b1e7",
       "released_at": "2026-10-03T18:38:27Z",
       "channel": "Dev",
-      "release_notes": "## What's changed\\n\\n- **Updated compatibility with Shoko.Abstractions alpha.98.** The checker now uses video `LocalID`s and the current hashing queue API. Its assembly embeds the package ID, name, overview, and tags so Shoko can identify the plug-in before loading it.",
+      "release_notes": "## What's changed\n\n- **Updated compatibility with Shoko.Abstractions alpha.98.** The checker now uses video `LocalID`s and the current hashing queue API. Its assembly embeds the package ID, name, overview, and tags so Shoko can identify the plug-in before loading it.",
       "archives": [
         {
           "runtime": "any",
