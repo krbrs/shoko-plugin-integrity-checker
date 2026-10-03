@@ -12,7 +12,10 @@
     <Title>Shoko Integrity Checker</Title>
     <Authors>krbrs</Authors>
     <Description>Re-hashes files in your Shoko managed folders and flags any whose contents no longer match the stored hash, surfacing them for verification and updated matching.</Description>
-    <Version>0.1.10</Version>
+    <PackageName>Integrity Checker</PackageName>
+    <PackageOverview>Re-hashes every file in your managed folders and flags any whose contents no longer match what Shoko has stored, leaving mismatches as unrecognized for re-matching — the same outcome as a manual single-file rescan, run in bulk with a small dashboard to drive it.</PackageOverview>
+    <PackageTags>integrity,hashing,maintenance,dashboard</PackageTags>
+    <Version>0.1.11</Version>
   </PropertyGroup>
 
   <!--
@@ -35,11 +38,15 @@
       that could conflict with the host's version.
     -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Shoko.Abstractions" Version="6.0.0-alpha.46" ExcludeAssets="runtime" />
+    <PackageReference Include="Shoko.Abstractions" Version="6.0.0-alpha.98" ExcludeAssets="runtime" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- Static plugin identity — baked into every build, CI and local alike. -->
+    <AssemblyMetadata Include="PackageID" Value="299604c0-f883-577b-a874-52e87f876fc8" />
+    <AssemblyMetadata Include="PackageName" Value="$(PackageName)" />
+    <AssemblyMetadata Include="PackageOverview" Value="$(PackageOverview)" />
+    <AssemblyMetadata Include="PackageTags" Value="$(PackageTags)" />
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>RepositoryUrl</_Parameter1>
       <_Parameter2>https://github.com/krbrs/shoko-plugin-integrity-checker</_Parameter2>

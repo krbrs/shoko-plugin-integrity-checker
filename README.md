@@ -65,7 +65,7 @@ cd "ShokoIntegrityChecker"
 dotnet build
 ```
 
-It targets `net10.0` and references the `Shoko.Abstractions` NuGet package (pinned to `6.0.0-alpha.46` to match the
+It targets `net10.0` and references the `Shoko.Abstractions` NuGet package (pinned to `6.0.0-alpha.98` to match the
 version in your `ShokoServer_fork` checkout — bump it if your server is on a different alpha). `ExcludeAssets="runtime"`
 keeps the package compile-only, since the host process supplies the actual assembly at runtime.
 

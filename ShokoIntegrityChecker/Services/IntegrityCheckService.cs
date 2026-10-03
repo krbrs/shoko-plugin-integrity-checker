@@ -424,7 +424,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                     }
 
                     var previousVideo = file.Video;
-                    var pending = new PendingHashWork(file, previousVideo.ID, previousVideo.ED2K);
+                    var pending = new PendingHashWork(file, previousVideo.LocalID, previousVideo.ED2K);
                     _pendingHashOperations[file.ID] = pending;
 
                     try
@@ -438,7 +438,6 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                             file,
                             useExistingHashes: false,
                             skipFindRelease: false,
-                            skipMylist: false,
                             prioritize: false);
                         pendingByFileID[file.ID] = pending;
                     }
@@ -484,7 +483,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                         var issue = new IntegrityCheckIssue
                         {
                             PreviousVideoID = pending.PreviousVideoID,
-                            NewVideoID = hashed.Video.ID,
+                            NewVideoID = hashed.Video.LocalID,
                             FileID = hashed.File.ID,
                             FileName = hashed.File.FileName,
                             RelativePath = hashed.RelativePath,
