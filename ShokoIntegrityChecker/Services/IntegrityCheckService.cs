@@ -17,7 +17,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
     private static readonly TimeSpan PersistInterval = TimeSpan.FromSeconds(5);
     private const int PersistEveryProcessedFiles = 25;
-    private const int QueueSubmissionWindow = 16;
+    private const int QueueSubmissionWindow = 64;
 
     private readonly IVideoService _videoService;
 

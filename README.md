@@ -125,4 +125,5 @@ branch-protect `main` to allow the `github-actions[bot]` actor).
 - **Recurring schedule**: register the check via `RecurringJobRegistry` so it runs automatically (e.g. weekly)
   instead of only on demand.
 - **Settings page**: expose `MaxAutoScanAttemptsPerVideo`-style throttling or concurrency limits if large libraries
-  make a full re-hash too heavy to run during normal usage.
+  make a full re-hash too heavy to run during normal usage. The submission window was bumped from 16 to 64 so the
+  queue stays consistently fed without needing a per-user throttle for most libraries.
