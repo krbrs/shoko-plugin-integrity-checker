@@ -402,14 +402,14 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                 _logger.LogInformation("Starting integrity check across {FileCount} file(s)", files.Count);
             }
 
-            var pendingByFileID = new Dictionary<int, PendingHashWork>();
+            var pendingByTask = new Dictionary<Task<VideoFileHashedEventArgs>, PendingHashWork>();
             var remainingFiles = new Queue<IVideoFile>(files);
 
-            while (remainingFiles.Count > 0 || pendingByFileID.Count > 0)
+            while (remainingFiles.Count > 0 || pendingByTask.Count > 0)
             {
                 while (!cancellationToken.IsCancellationRequested
                     && remainingFiles.Count > 0
-                    && pendingByFileID.Count < QueueSubmissionWindow)
+                    && pendingByTask.Count < QueueSubmissionWindow)
                 {
                     var file = remainingFiles.Dequeue();
 
@@ -439,7 +439,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                             useExistingHashes: false,
                             skipFindRelease: false,
                             prioritize: false);
-                        pendingByFileID[file.ID] = pending;
+                        pendingByTask[pending.Completion.Task] = pending;
                     }
                     catch (Exception ex)
                     {
@@ -451,7 +451,7 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                     }
                 }
 
-                if (pendingByFileID.Count == 0)
+                if (pendingByTask.Count == 0)
                 {
                     if (cancellationToken.IsCancellationRequested)
                         break;
@@ -462,10 +462,10 @@ public sealed class IntegrityCheckService : IIntegrityCheckService
                 Task<VideoFileHashedEventArgs> completedTask;
                 try
                 {
-                    completedTask = await Task.WhenAny(pendingByFileID.Values.Select(pending => pending.Completion.Task));
+                    completedTask = await Task.WhenAny(pendingByTask.Keys);
                     var hashed = await completedTask;
-                    var pending = pendingByFileID.Values.First(candidate => candidate.Completion.Task == completedTask);
-                    pendingByFileID.Remove(pending.File.ID);
+                    var pending = pendingByTask[completedTask];
+                    pendingByTask.Remove(completedTask);
 
                     var newHash = hashed.Video.ED2K;
                     if (hashed.IsNewVideo || !string.Equals(pending.PreviousHash, newHash, StringComparison.OrdinalIgnoreCase))
