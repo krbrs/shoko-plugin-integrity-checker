@@ -19,7 +19,7 @@
       "source_revision": "8488b34a942e78d92efd375d114f1ea0b8208d8e",
       "released_at": "2026-10-06T11:19:07Z",
       "channel": "Dev",
-      "release_notes": "**Full Changelog**: https://github.com/krbrs/shoko-plugin-integrity-checker/compare/v0.1.11...v0.1.12",
+      "release_notes": "## What's changed\n\n- **Increased queue submission window from 16 to 64.** Keeps more files in-flight in Shoko's hashing queue, absorbing stragglers and reducing idle gaps between batches.\n- **Optimized completion lookup from O(n) to O(1).** Dictionary keys now reference the completion `Task` directly instead of file ID, so each completion avoids scanning all pending entries.",
       "archives": [
         {
           "runtime": "any",
